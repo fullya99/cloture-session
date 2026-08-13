@@ -89,10 +89,16 @@ bash $CS/scripts/ctx-audit.sh            # rapport de dérive entre la doc et le
 bash $CS/scripts/ctx-audit.sh --strict   # sortie non nulle s'il reste une alerte, pour la CI
 ```
 
-L'audit fait neuf contrôles : kit manquant, dates qui traînent, fiches périmées ou marquées
-obsolètes, fiches dont la portée a bougé, fiches absentes de l'index, modules sans doc, liens
-relatifs morts, archives sans en-tête ou hors index, marqueurs laissés dans le code, et une
-heuristique légère sur les secrets en clair.
+L'audit fait dix contrôles : kit manquant, **niveaux imbriqués d'un monorepo**, dates qui traînent,
+fiches périmées ou marquées obsolètes, fiches dont la portée a bougé, fiches absentes de l'index,
+modules sans doc, liens relatifs morts, archives sans en-tête ou hors index, marqueurs laissés dans
+le code, et une heuristique légère sur les secrets en clair.
+
+**Plusieurs projets dans un dépôt.** Le script audite un niveau à la fois, `--root <chemin>` choisit
+lequel. Sans lui la racine se déduit de git, donc lancé depuis un sous-projet il audite le dépôt
+entier et il te le dit. Sa section « Niveaux imbriqués » liste les dossiers en dessous qui portent
+leur propre kit, avec la commande pour chacun. Un sous-projet se clôture séparément, le parent pointe
+vers lui et ne recopie pas sa doc.
 
 Bash et git suffisent. Aucune dépendance à installer, aucun serveur MCP requis.
 

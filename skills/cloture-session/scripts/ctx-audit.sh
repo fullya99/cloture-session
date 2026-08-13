@@ -26,8 +26,11 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+APPEL="$(pwd)"
+RACINE_DEDUITE=0
 if [ -z "$ROOT" ]; then
   ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+  RACINE_DEDUITE=1
 fi
 ROOT="$(cd "$ROOT" && pwd)"
 cd "$ROOT"
@@ -80,6 +83,40 @@ done
 PROFIL="$(grep -m1 '^profil:' CODEMAP.md 2>/dev/null | sed 's/^profil: *//' || true)"
 [ -n "$PROFIL" ] && info "profil declare : $PROFIL" \
                  || info "aucun bloc contexte:convention dans CODEMAP.md, chemins par defaut"
+
+# Sans --root, la racine se deduit de git, donc appeler le script depuis un
+# sous-projet audite le PARENT et pas le sous-projet. Silencieux et couteux.
+if [ "$RACINE_DEDUITE" -eq 1 ] && [ "$APPEL" != "$ROOT" ]; then
+  alerte "appele depuis ${APPEL#"$ROOT"/}, mais c'est $ROOT qui est audite. La racine est deduite de git. Pour auditer le sous-projet : ctx-audit.sh --root ${APPEL#"$ROOT"/}"
+fi
+
+# --- 1b. niveaux imbriques ----------------------------------------------------
+# Un monorepo ou un projet a sous-projets porte plusieurs kits. Chacun est un
+# niveau autonome, a auditer et a cloturer separement. Le parent pointe vers eux,
+# il ne les absorbe pas.
+echo
+echo "1b. Niveaux imbriques"
+# Un vrai kit porte les trois piliers. Un CODEMAP.md seul est soit un gabarit, soit
+# un fichier qui porte le meme nom par hasard. Et un gabarit contient des
+# emplacements a remplir de la forme {{...}}, ce qui le distingue a coup sur.
+NIVEAUX=""
+for c in $(find . -mindepth 2 -name CODEMAP.md \
+             -not -path './.git/*' -not -path './archives/*' \
+             -not -path './node_modules/*' -not -path './dist/*' 2>/dev/null | sort); do
+  d="${c%/CODEMAP.md}"; d="${d#./}"
+  [ -f "$d/TODOS.md" ] && [ -f "$d/CHANGELOG.md" ] || continue
+  grep -q '{{' "$c" 2>/dev/null && continue
+  NIVEAUX="$NIVEAUX $d"
+done
+if [ -n "$NIVEAUX" ]; then
+  for n in $NIVEAUX; do
+    alerte "$n porte son propre kit, c'est un niveau a auditer et a cloturer a part : ctx-audit.sh --root $n"
+    grep -q "$n" CODEMAP.md 2>/dev/null \
+      || alerte "$n n'est cite nulle part dans le CODEMAP de la racine, le parent doit pointer vers lui"
+  done
+else
+  ok "aucun kit imbrique, un seul niveau a tenir"
+fi
 
 # --- 2. fraicheur -------------------------------------------------------------
 echo
@@ -190,6 +227,10 @@ if [ -n "$SRC" ]; then
     for m in $(find "$base" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort); do
       nom="$(basename "$m")"
       case "$nom" in .*|__pycache__|node_modules|test|tests) continue ;; esac
+      # Un sous-projet qui porte son propre kit n'est pas un module du parent. Lui
+      # reclamer une fiche ici pousserait a dupliquer sa doc, ce que la convention
+      # interdit. Il est signale en section 1b comme niveau a part.
+      [ -f "$m/CODEMAP.md" ] && continue
       if [ ! -f "docs/modules/$nom.md" ]; then
         info "$m : pas de fiche docs/modules/$nom.md"
         trouve=$((trouve + 1))

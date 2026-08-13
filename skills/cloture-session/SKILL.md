@@ -1,7 +1,7 @@
 ---
 name: cloture-session
 description: Clôture de session avant un /clear, et maintenance de la documentation vivante d'un projet, quel que soit son type. Synchronise les 3 piliers CODEMAP.md, TODOS.md, CHANGELOG.md, met à jour les fiches docs/ des modules et features touchés, et déplace vers archives/ tout ce qui est devenu faux, périmé ou remplacé, pour qu'une session neuve reprenne le travail sans perdre une information. Se déclenche sur : clôture ou fin de session, mise au propre, "avant de clear", "range le projet", "documente ce qu'on a fait", "archive ce qui est obsolète", doc vivante, CODEMAP, TODOS, CHANGELOG, /cloture. Couvre aussi l'installation de la convention dans un projet neuf (/init-contexte) et la reprise après un /clear (/reprise-session).
-version: 3.0.0
+version: 3.1.0
 author: fullya99
 license: MIT
 platforms: [linux, macos, windows]
@@ -151,8 +151,17 @@ git status -s && git diff --stat && git log --oneline -10
 1. **Périmètre.** Ce qui a changé, y compris hors git : fichiers non trackés, ressources
    externes créées (service, base, DNS, clé), effets de bord système.
 2. **Niveaux.** Une session démarrée dans un sous-répertoire touche souvent au-dessus : racine
-   du monorepo, config partagée, `~/.claude`. Repère tous les niveaux qui ont leur propre kit,
-   chacun devra être mis à jour. Ne documente jamais que le cwd.
+   du monorepo, config partagée, `~/.claude`. Et une session peut avoir traversé plusieurs projets
+   sans rapport. Repère **tous** les niveaux qui ont leur propre kit, chacun devra être mis à jour.
+
+   ```bash
+   find . -mindepth 2 -name CODEMAP.md -not -path './.git/*' -not -path './archives/*' \
+     -not -path './node_modules/*' | sed 's|/CODEMAP.md$||'
+   ```
+
+   Un dossier qui porte les trois piliers est un niveau **autonome**. Il se clôture séparément, le
+   parent pointe vers lui et ne l'absorbe pas. Recopier la doc d'un sous-projet chez son parent est
+   l'erreur exacte à éviter. Ne documente jamais que le cwd.
 3. **Proportionnalité.** Calibre l'effort, mais ne saute rien.
    - Petite session (un ou deux fichiers, aucune structure touchée) : CHANGELOG en entrée
      courte, TODOS et **le scan d'obsolescence de la phase 4, toujours**.
@@ -162,11 +171,16 @@ git status -s && git diff --stat && git log --oneline -10
 ### Phase 1. Auditer le réel, sans faire confiance aux docs
 
 ```bash
-bash "$SKILL/scripts/ctx-audit.sh"   # dérive, fiches périmées, liens morts, modules non documentés, archives non indexées
+bash "$SKILL/scripts/ctx-audit.sh"                      # le niveau courant
+bash "$SKILL/scripts/ctx-audit.sh" --root packages/api  # un niveau imbriqué
 ```
 
-Le script s'exécute sur le projet courant quel que soit l'endroit d'où tu l'appelles. Si `$SKILL`
-n'est pas encore résolu, voir le mode INIT plus haut.
+**Une passe par niveau touché**, repéré en phase 0, pas une seule à la racine. Le script audite un
+niveau à la fois. Sans `--root` il déduit la racine de git, donc lancé depuis un sous-projet il
+audite le dépôt entier et pas le sous-projet. Il te le dit quand ça arrive, et sa section
+« Niveaux imbriqués » liste les kits qu'il trouve en dessous.
+
+Si `$SKILL` n'est pas encore résolu, voir le mode INIT plus haut.
 
 Le script signale, il ne juge pas. À toi de vérifier sur le terrain ce que la session a touché :
 le service tourne-t-il vraiment, la ressource existe-t-elle, le test passe-t-il, le chemin cité
@@ -240,6 +254,7 @@ piliers, dans `CLAUDE.md`, ni dans `docs/`. Et aucune suppression silencieuse.
 
 Checklist bloquante, version détaillée dans `references/HANDOFF.md`.
 
+- [ ] **Chaque niveau touché** a eu sa passe complète, pas seulement celui d'où tu es parti.
 - [ ] Les 3 piliers reflètent l'état réel vérifié en phase 1, sans se contredire entre eux.
 - [ ] Le bloc « État à la reprise » de TODOS.md permet de reprendre sans cette conversation.
 - [ ] Tout travail en cours non terminé a une tâche explicite, sinon il est perdu au `/clear`.
