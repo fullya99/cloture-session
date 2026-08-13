@@ -27,6 +27,19 @@ cp -r skills/cloture-session ~/.claude/skills/
 Par cette voie les slash commands ne suivent pas, elles n'existent qu'en installation plugin. Les
 trois modes restent accessibles en les demandant en français.
 
+## Claude web, et pourquoi c'est de peu d'intérêt ici
+
+Le skill s'y installe, l'archive est sur la
+[dernière release](https://github.com/fullya99/cloture-session/releases/latest). Réglages →
+Capacités → Skills → Add Skill → Upload skill, avec **Code execution and file creation** activé.
+
+Mais dis-le-toi franchement : ce skill sert à tenir la doc d'un dépôt à jour, et sur Claude web il
+n'y a pas de dépôt. Pas de `git status`, pas tes fichiers, sauf ce que tu uploades. La convention se
+chargera et Claude saura de quoi tu parles, les scripts n'auront rien à auditer. Utile comme
+référence, pas comme outil.
+
+Les slash commands ne suivent pas non plus, Claude Chat n'a pas de surface d'installation de plugin.
+
 ## Ce qu'il installe dans ton projet
 
 Trois fichiers à la racine, plus `CLAUDE.md`. Chacun répond à une question, et à une seule.
