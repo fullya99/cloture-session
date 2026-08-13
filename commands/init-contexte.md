@@ -8,8 +8,9 @@ Profil imposé, si l'utilisateur en donne un : $ARGUMENTS
 Lance le skill **cloture-session** en **mode INIT**.
 
 ```bash
-SKILL="$(for d in "$CLAUDE_PLUGIN_ROOT" ".claude/skills/cloture-session" "$HOME/.claude/skills/cloture-session" \
-  $(find "$HOME/.claude/plugins/cache" -maxdepth 4 -type d -name cloture-session 2>/dev/null); do
+SKILL="$(for d in "$CLAUDE_PLUGIN_ROOT/skills/cloture-session" \
+  ".claude/skills/cloture-session" "$HOME/.claude/skills/cloture-session" \
+  $(find "$HOME/.claude/plugins" -maxdepth 7 -type d -path '*/skills/cloture-session' 2>/dev/null); do
   [ -f "$d/scripts/ctx-audit.sh" ] && echo "$d" && break
 done)"
 bash "$SKILL/scripts/ctx-init.sh" --dry-run     # d'abord voir ce qui serait créé

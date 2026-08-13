@@ -1,0 +1,14 @@
+{
+  "name": "cloture-session",
+  "owner": {
+    "name": "fullya99"
+  },
+  "plugins": [
+    {
+      "name": "cloture-session",
+      "source": "./",
+      "description": "Convention de contexte pour n'importe quel projet. Clôture de session avant un /clear, reprise sans perte, archivage de tout ce qui devient faux.",
+      "version": "2.0.0"
+    }
+  ]
+}

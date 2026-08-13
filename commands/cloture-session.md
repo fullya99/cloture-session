@@ -15,12 +15,16 @@ Le script d'audit de la phase 1 vit dans le skill, pas dans le projet courant. R
 avant de l'appeler :
 
 ```bash
-SKILL="$(for d in "$CLAUDE_PLUGIN_ROOT" ".claude/skills/cloture-session" "$HOME/.claude/skills/cloture-session" \
-  $(find "$HOME/.claude/plugins/cache" -maxdepth 4 -type d -name cloture-session 2>/dev/null); do
+SKILL="$(for d in "$CLAUDE_PLUGIN_ROOT/skills/cloture-session" \
+  ".claude/skills/cloture-session" "$HOME/.claude/skills/cloture-session" \
+  $(find "$HOME/.claude/plugins" -maxdepth 7 -type d -path '*/skills/cloture-session' 2>/dev/null); do
   [ -f "$d/scripts/ctx-audit.sh" ] && echo "$d" && break
 done)"
 bash "$SKILL/scripts/ctx-audit.sh"
 ```
+
+Si `$SKILL` ressort vide, le skill n'est pas installé là où tu le crois. Tu fais l'audit à la
+main et tu le signales, tu n'appelles pas un chemin qui n'existe pas.
 
 Rappels qui coûtent cher si tu les oublies :
 

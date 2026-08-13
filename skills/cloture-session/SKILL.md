@@ -81,16 +81,19 @@ depuis le projet à équiper, pas depuis le skill, donc les chemins relatifs du 
 `scripts/ctx-init.sh` ne résolvent pas. Résous-le une fois en début de mode :
 
 ```bash
-SKILL="$(for d in "$CLAUDE_PLUGIN_ROOT" ".claude/skills/cloture-session" "$HOME/.claude/skills/cloture-session" \
-  $(find "$HOME/.claude/plugins/cache" -maxdepth 4 -type d -name cloture-session 2>/dev/null); do
+SKILL="$(for d in "$CLAUDE_PLUGIN_ROOT/skills/cloture-session" \
+  ".claude/skills/cloture-session" "$HOME/.claude/skills/cloture-session" \
+  $(find "$HOME/.claude/plugins" -maxdepth 7 -type d -path '*/skills/cloture-session' 2>/dev/null); do
   [ -f "$d/scripts/ctx-audit.sh" ] && echo "$d" && break
 done)"
+[ -n "$SKILL" ] || echo "skill introuvable, fais les etapes a la main sans le script"
 ```
 
 L'ordre est voulu. `CLAUDE_PLUGIN_ROOT` d'abord quand le skill tourne comme plugin, puis
-l'installation projet, puis l'installation user, puis le cache des plugins du marketplace. Le
-dossier de cache porte un numéro de version qui change à chaque mise à jour, donc on le cherche
-au lieu de l'écrire.
+l'installation projet, puis l'installation user, puis le balayage des plugins installés. Ce
+dernier chemin dépend du marketplace d'origine et de sa version, donc on le cherche au lieu de
+l'écrire. Le test porte sur la présence de `scripts/ctx-audit.sh`, ce qui écarte au passage les
+répertoires homonymes.
 
 Le script pose les gabarits. Le vrai travail commence après, parce qu'un gabarit vide ne sert
 à personne.
