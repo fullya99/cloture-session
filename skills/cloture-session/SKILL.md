@@ -1,7 +1,7 @@
 ---
 name: cloture-session
-description: Clôture de session avant un /clear, et maintenance de la documentation vivante d'un projet, quel que soit son type. Synchronise les 3 piliers CODEMAP.md, TODOS.md, CHANGELOG.md, met à jour les fiches docs/ des modules et features touchés, et déplace vers archives/ tout ce qui est devenu faux, périmé ou remplacé, pour qu'une session neuve reprenne le travail sans perdre une information. Se déclenche sur : clôture ou fin de session, mise au propre, "avant de clear", "range le projet", "documente ce qu'on a fait", "archive ce qui est obsolète", doc vivante, CODEMAP, TODOS, CHANGELOG, /cloture. Couvre aussi l'installation de la convention dans un projet neuf (/init-contexte) et la reprise après un /clear (/reprise-session).
-version: 3.1.0
+description: "Clôture de session avant un /clear, et maintenance de la documentation vivante d'un projet, quel que soit son type. Synchronise les 3 piliers CODEMAP.md, TODOS.md, CHANGELOG.md, met à jour les fiches docs/ des modules et features touchés, et déplace vers archives/ tout ce qui est devenu faux, périmé ou remplacé, pour qu'une session neuve reprenne le travail sans perdre une information. Se déclenche sur : clôture ou fin de session, mise au propre, \"avant de clear\", \"range le projet\", \"documente ce qu'on a fait\", \"archive ce qui est obsolète\", doc vivante, CODEMAP, TODOS, CHANGELOG, /cloture. Couvre aussi l'installation de la convention dans un projet neuf (/init-contexte) et la reprise après un /clear (/reprise-session)."
+version: 3.1.1
 author: fullya99
 license: MIT
 platforms: [linux, macos, windows]

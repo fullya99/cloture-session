@@ -8,7 +8,7 @@
       "name": "cloture-session",
       "source": "./",
       "description": "Convention de contexte pour n'importe quel projet. Clôture de session avant un /clear, reprise sans perte, archivage de tout ce qui devient faux.",
-      "version": "3.1.0"
+      "version": "3.1.1"
     }
   ]
 }
