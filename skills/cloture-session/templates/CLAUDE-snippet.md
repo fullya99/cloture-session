@@ -20,9 +20,9 @@ source de vérité, pas la conversation.
 **Ne jamais lire `archives/`.** C'est du contenu périmé par construction, gardé pour
 l'historique. On n'y va que sur demande explicite.
 
-**En fin de session, avant tout `/clear`** : lancer `/cloture-session`. Ça resynchronise les
-3 piliers, met à jour les fiches `docs/` des modules touchés et déplace vers `archives/` tout
-ce qui est devenu faux ou obsolète.
+**En fin de session, avant tout `/clear`** : lancer `/cloture`, ou simplement demander de ranger le
+projet. Ça resynchronise les 3 piliers, met à jour les fiches `docs/` des modules touchés et déplace
+vers `archives/` tout ce qui est devenu faux ou obsolète.
 
 **Les règles qui tiennent l'ensemble**
 

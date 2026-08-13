@@ -1,6 +1,6 @@
 ---
 name: cloture-session
-description: Clôture de session avant un /clear, et maintenance de la documentation vivante d'un projet, quel que soit son type. Synchronise les 3 piliers CODEMAP.md, TODOS.md, CHANGELOG.md, met à jour les fiches docs/ des modules et features touchés, et déplace vers archives/ tout ce qui est devenu faux, périmé ou remplacé, pour qu'une session neuve reprenne le travail sans perdre une information. Se déclenche sur : clôture ou fin de session, mise au propre, "avant de clear", "range le projet", "documente ce qu'on a fait", "archive ce qui est obsolète", doc vivante, CODEMAP, TODOS, CHANGELOG, /cloture-session. Couvre aussi l'installation de la convention dans un projet neuf (/init-contexte) et la reprise après un /clear (/reprise-session).
+description: Clôture de session avant un /clear, et maintenance de la documentation vivante d'un projet, quel que soit son type. Synchronise les 3 piliers CODEMAP.md, TODOS.md, CHANGELOG.md, met à jour les fiches docs/ des modules et features touchés, et déplace vers archives/ tout ce qui est devenu faux, périmé ou remplacé, pour qu'une session neuve reprenne le travail sans perdre une information. Se déclenche sur : clôture ou fin de session, mise au propre, "avant de clear", "range le projet", "documente ce qu'on a fait", "archive ce qui est obsolète", doc vivante, CODEMAP, TODOS, CHANGELOG, /cloture. Couvre aussi l'installation de la convention dans un projet neuf (/init-contexte) et la reprise après un /clear (/reprise-session).
 ---
 
 # Gestion de contexte : clôture, reprise, convention
@@ -54,7 +54,7 @@ après n'importe quel `/clear`.
 
 | Situation | Mode | Aller à |
 |---|---|---|
-| Fin de session, avant un `/clear`, mise au propre, `/cloture-session` | **CLÔTURE** | [Mode CLÔTURE](#mode-clôture) |
+| Fin de session, avant un `/clear`, mise au propre, `/cloture` | **CLÔTURE** | [Mode CLÔTURE](#mode-clôture) |
 | Début de session, après un `/clear`, « où on en était », `/reprise-session` | **REPRISE** | [Mode REPRISE](#mode-reprise) |
 | Le projet n'a pas le kit, ou pas en entier, `/init-contexte` | **INIT** | [Mode INIT](#mode-init) |
 
@@ -83,17 +83,24 @@ depuis le projet à équiper, pas depuis le skill, donc les chemins relatifs du 
 ```bash
 SKILL="$(for d in "$CLAUDE_PLUGIN_ROOT/skills/cloture-session" \
   ".claude/skills/cloture-session" "$HOME/.claude/skills/cloture-session" \
-  $(find "$HOME/.claude/plugins" -maxdepth 7 -type d -path '*/skills/cloture-session' 2>/dev/null); do
+  $(find "$HOME/.claude/plugins/cache" -maxdepth 5 -type d -path '*/skills/cloture-session' 2>/dev/null | sort -r) \
+  $(find "$HOME/.claude/plugins/marketplaces" -maxdepth 5 -type d -path '*/skills/cloture-session' 2>/dev/null); do
   [ -f "$d/scripts/ctx-audit.sh" ] && echo "$d" && break
 done)"
 [ -n "$SKILL" ] || echo "skill introuvable, fais les etapes a la main sans le script"
 ```
 
 L'ordre est voulu. `CLAUDE_PLUGIN_ROOT` d'abord quand le skill tourne comme plugin, puis
-l'installation projet, puis l'installation user, puis le balayage des plugins installés. Ce
-dernier chemin dépend du marketplace d'origine et de sa version, donc on le cherche au lieu de
-l'écrire. Le test porte sur la présence de `scripts/ctx-audit.sh`, ce qui écarte au passage les
-répertoires homonymes.
+l'installation projet, puis l'installation user, puis les plugins installés.
+
+Un plugin installé existe en deux copies. `cache/<marketplace>/<plugin>/<version>/` porte la version
+réellement installée, `marketplaces/<marketplace>/` porte la pointe de `master` du dépôt. On cherche
+le cache d'abord, et le `sort -r` prend la version la plus haute quand plusieurs sont en cache. Sans
+cet ordre, un `find` unique renvoie les deux et prend celle que le parcours donne en premier, ce qui
+choisit au hasard dès que le dépôt a avancé au-delà de la version installée.
+
+Le test porte sur la présence de `scripts/ctx-audit.sh`, ce qui écarte au passage les répertoires
+homonymes.
 
 Le script pose les gabarits. Le vrai travail commence après, parce qu'un gabarit vide ne sert
 à personne.

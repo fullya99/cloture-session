@@ -17,11 +17,15 @@ avant de l'appeler :
 ```bash
 SKILL="$(for d in "$CLAUDE_PLUGIN_ROOT/skills/cloture-session" \
   ".claude/skills/cloture-session" "$HOME/.claude/skills/cloture-session" \
-  $(find "$HOME/.claude/plugins" -maxdepth 7 -type d -path '*/skills/cloture-session' 2>/dev/null); do
+  $(find "$HOME/.claude/plugins/cache" -maxdepth 5 -type d -path '*/skills/cloture-session' 2>/dev/null | sort -r) \
+  $(find "$HOME/.claude/plugins/marketplaces" -maxdepth 5 -type d -path '*/skills/cloture-session' 2>/dev/null); do
   [ -f "$d/scripts/ctx-audit.sh" ] && echo "$d" && break
 done)"
 bash "$SKILL/scripts/ctx-audit.sh"
 ```
+
+`cache/` passe avant `marketplaces/` : le premier porte la version installée, le second la pointe
+de `master` du dépôt. Les deux copient le même plugin, elles divergent dès que le dépôt avance.
 
 Si `$SKILL` ressort vide, le skill n'est pas installé là où tu le crois. Tu fais l'audit à la
 main et tu le signales, tu n'appelles pas un chemin qui n'existe pas.

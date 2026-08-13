@@ -51,8 +51,13 @@ en confiance après n'importe quel `/clear`.
 | Commande | Quand |
 |---|---|
 | `/init-contexte` | Une fois, pour installer la convention dans un projet |
-| `/cloture-session` | En fin de session, avant un `/clear` |
+| `/cloture` | En fin de session, avant un `/clear` |
 | `/reprise-session` | Après un `/clear`, pour retrouver le fil en dix lignes |
+
+Claude Code préfixe les commandes d'un plugin par son nom, donc ça s'écrit
+`/cloture-session:cloture` si tu tapes le nom complet. La commande ne s'appelle pas comme le skill
+exprès : une commande qui porte le nom d'un skill le masque, et le skill ne se déclenche plus tout
+seul.
 
 La clôture fait six choses dans l'ordre. Elle cadre le périmètre, audite l'état réel sans faire
 confiance aux docs existantes, resynchronise les trois piliers, met à jour les fiches des modules
