@@ -15,14 +15,20 @@ Le script d'audit de la phase 1 vit dans le skill, pas dans le projet courant. R
 avant de l'appeler :
 
 ```bash
+ANCETRES="$(d="$PWD"; while [ "$d" != "/" ]; do echo "$d/.agents/skills/cloture-session"; d="$(dirname "$d")"; done)"
+
 SKILL="$(for d in "$CLAUDE_PLUGIN_ROOT/skills/cloture-session" \
-  ".claude/skills/cloture-session" "$HOME/.claude/skills/cloture-session" \
+  ".claude/skills/cloture-session" $ANCETRES \
+  "$HOME/.claude/skills/cloture-session" "$HOME/.agents/skills/cloture-session" \
   $(find "$HOME/.claude/plugins/cache" -maxdepth 5 -type d -path '*/skills/cloture-session' 2>/dev/null | sort -r) \
   $(find "$HOME/.claude/plugins/marketplaces" -maxdepth 5 -type d -path '*/skills/cloture-session' 2>/dev/null); do
   [ -f "$d/scripts/ctx-audit.sh" ] && echo "$d" && break
 done)"
 bash "$SKILL/scripts/ctx-audit.sh"
 ```
+
+L'ordre couvre l'installation en plugin, puis la portée projet chez Claude Code et chez Codex,
+puis leur portée utilisateur, puis les copies de plugin de Claude Code.
 
 `cache/` passe avant `marketplaces/` : le premier porte la version installée, le second la pointe
 de `master` du dépôt. Les deux copient le même plugin, elles divergent dès que le dépôt avance.

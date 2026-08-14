@@ -1,7 +1,7 @@
 ---
 name: cloture-session
 description: "Clôture de session avant un /clear, et maintenance de la documentation vivante d'un projet, quel que soit son type. Synchronise les 3 piliers CODEMAP.md, TODOS.md, CHANGELOG.md, met à jour les fiches docs/ des modules et features touchés, et déplace vers archives/ tout ce qui est devenu faux, périmé ou remplacé, pour qu'une session neuve reprenne le travail sans perdre une information. Se déclenche sur : clôture ou fin de session, mise au propre, \"avant de clear\", \"range le projet\", \"documente ce qu'on a fait\", \"archive ce qui est obsolète\", doc vivante, CODEMAP, TODOS, CHANGELOG, /cloture. Couvre aussi l'installation de la convention dans un projet neuf (/init-contexte) et la reprise après un /clear (/reprise-session)."
-version: 3.1.1
+version: 3.2.0
 author: fullya99
 license: MIT
 platforms: [linux, macos, windows]
@@ -12,8 +12,9 @@ metadata:
 
 # Gestion de contexte : clôture, reprise, convention
 
-> **Le contrat** : à tout instant, le dépôt seul doit suffire. Un `/clear` ne doit jamais
-> coûter une information. Si une info ne vit que dans la conversation, elle n'existe pas.
+> **Le contrat** : à tout instant, le dépôt seul doit suffire. Repartir sur un contexte neuf,
+> `/clear` chez Claude Code, ne doit jamais coûter une information. Si une info ne vit que dans
+> la conversation, elle n'existe pas.
 
 Ce skill implémente une convention de documentation vivante avec archivage, conçue pour se
 greffer sur n'importe quel type de projet : code applicatif, librairie, infra, data, contenu,
@@ -53,7 +54,7 @@ Deux répertoires pour la profondeur.
 
 La règle qui fait tenir l'ensemble : **`docs/` ne contient que du vrai, `archives/` absorbe
 tout le reste**. C'est ça qui empêche la doc de pourrir et qui permet de la lire en confiance
-après n'importe quel `/clear`.
+après n'importe quel redémarrage à froid.
 
 ---
 
@@ -88,8 +89,11 @@ depuis le projet à équiper, pas depuis le skill, donc les chemins relatifs du 
 `scripts/ctx-init.sh` ne résolvent pas. Résous-le une fois en début de mode :
 
 ```bash
+ANCETRES="$(d="$PWD"; while [ "$d" != "/" ]; do echo "$d/.agents/skills/cloture-session"; d="$(dirname "$d")"; done)"
+
 SKILL="$(for d in "$CLAUDE_PLUGIN_ROOT/skills/cloture-session" \
-  ".claude/skills/cloture-session" "$HOME/.claude/skills/cloture-session" \
+  ".claude/skills/cloture-session" $ANCETRES \
+  "$HOME/.claude/skills/cloture-session" "$HOME/.agents/skills/cloture-session" \
   $(find "$HOME/.claude/plugins/cache" -maxdepth 5 -type d -path '*/skills/cloture-session' 2>/dev/null | sort -r) \
   $(find "$HOME/.claude/plugins/marketplaces" -maxdepth 5 -type d -path '*/skills/cloture-session' 2>/dev/null); do
   [ -f "$d/scripts/ctx-audit.sh" ] && echo "$d" && break
@@ -97,8 +101,9 @@ done)"
 [ -n "$SKILL" ] || echo "skill introuvable, fais les etapes a la main sans le script"
 ```
 
-L'ordre est voulu. `CLAUDE_PLUGIN_ROOT` d'abord quand le skill tourne comme plugin, puis
-l'installation projet, puis l'installation user, puis les plugins installés.
+L'ordre est voulu. `CLAUDE_PLUGIN_ROOT` d'abord quand le skill tourne comme plugin, puis la
+portée projet chez Claude Code et chez Codex, puis la portée utilisateur des deux, puis les
+copies de plugin de Claude Code.
 
 Un plugin installé existe en deux copies. `cache/<marketplace>/<plugin>/<version>/` porte la version
 réellement installée, `marketplaces/<marketplace>/` porte la pointe de `master` du dépôt. On cherche
@@ -108,6 +113,12 @@ choisit au hasard dès que le dépôt a avancé au-delà de la version installé
 
 Le test porte sur la présence de `scripts/ctx-audit.sh`, ce qui écarte au passage les répertoires
 homonymes.
+
+Codex n'a pas d'équivalent de `CLAUDE_PLUGIN_ROOT`, cette boucle est son seul mécanisme de
+résolution. Il remonte l'arborescence pour trouver `.agents/skills/`, et `$ANCETRES` fait la même
+chose avant la boucle, en testant chaque ancêtre du répertoire courant. Un skill posé à la racine
+d'un dépôt pendant qu'on travaille dans un sous-dossier est donc trouvé. Vérifié sur un banc
+d'essai Codex du 2026-08-14.
 
 Le script pose les gabarits. Le vrai travail commence après, parce qu'un gabarit vide ne sert
 à personne.
@@ -200,7 +211,7 @@ et tu le notes.
 |---|---|
 | **CHANGELOG.md** | Ajoute en haut `## AAAA-MM-JJ, titre`. Trois choses : **quoi** (factuel), **pourquoi**, **rollback** (comment défaire). Un gros lot reste court ici et pointe vers `docs/`. |
 | **CODEMAP.md** | Reflète la nouvelle structure : module ajouté, supprimé ou renommé, point d'entrée déplacé, dépendance ajoutée, commande changée. **Retire ce qui n'existe plus.** Ajoute les pièges sans module aux zones sensibles. Mets à jour la date. |
-| **TODOS.md** | Coche le fait, **supprime** l'obsolète, ajoute les tâches et dettes découvertes. Puis **réécris le bloc « État à la reprise » en tête**, c'est lui qui sera lu en premier après le `/clear`. |
+| **TODOS.md** | Coche le fait, **supprime** l'obsolète, ajoute les tâches et dettes découvertes. Puis **réécris le bloc « État à la reprise » en tête**, c'est lui qui sera lu en premier au retour. |
 
 Les faits durables appris cette session ne vont pas dans un pilier, ils vont chez leur
 propriétaire. Une décision et son pourquoi, un ADR dans `docs/decisions/`. Un piège de module,
@@ -250,14 +261,14 @@ En résumé :
 Règle d'or, à la fin de cette phase aucune affirmation connue-fausse ne subsiste dans les
 piliers, dans `CLAUDE.md`, ni dans `docs/`. Et aucune suppression silencieuse.
 
-### Phase 5. Test « prêt pour /clear »
+### Phase 5. Test « prêt pour un contexte neuf »
 
 Checklist bloquante, version détaillée dans `references/HANDOFF.md`.
 
 - [ ] **Chaque niveau touché** a eu sa passe complète, pas seulement celui d'où tu es parti.
 - [ ] Les 3 piliers reflètent l'état réel vérifié en phase 1, sans se contredire entre eux.
 - [ ] Le bloc « État à la reprise » de TODOS.md permet de reprendre sans cette conversation.
-- [ ] Tout travail en cours non terminé a une tâche explicite, sinon il est perdu au `/clear`.
+- [ ] Tout travail en cours non terminé a une tâche explicite, sinon il est perdu au redémarrage.
 - [ ] Chaque module ou feature touché a une fiche `docs/` à jour et indexée.
 - [ ] Ce qui est obsolète est dans `archives/`, avec en-tête et ligne d'index.
 - [ ] Aucun secret dans un fichier tracké. `git status` conforme à l'intention.
@@ -279,7 +290,7 @@ CLAUDE.md : [ce qui a bougé, ou « inchangé »]
 Niveaux mis à jour : [cwd] · [parent si touché] · [~/.claude si touché]
 Reste à faire : [2 ou 3 items clés, pointeur vers TODOS.md]
 
-Prêt pour /clear ✅
+Prêt pour un contexte neuf ✅
 ```
 
 **Commit** : jamais sans demande explicite. Tu proposes, tu attends. Si on te le demande,
@@ -290,8 +301,8 @@ désignée.
 
 ## Mode REPRISE
 
-Après un `/clear`, ou en début de session sur un projet que tu ne connais pas. Tu reconstruis
-le contexte utile en lisant dans cet ordre.
+Après un redémarrage à froid, `/clear` chez Claude Code, ou en début de session sur un projet
+que tu ne connais pas. Tu reconstruis le contexte utile en lisant dans cet ordre.
 
 1. `CLAUDE.md` s'il existe, pour les règles du projet et les préférences durables.
 2. `TODOS.md`, **le bloc « État à la reprise » d'abord**. C'est le point d'ancrage.
@@ -318,7 +329,7 @@ le symptôme d'une clôture bâclée, et ça se corrige avant de coder, pas apr�
 - ❌ **Aucune affirmation connue-fausse laissée « pour plus tard »** dans les docs ou les piliers.
 - ❌ **Aucune doc écrite depuis une supposition.** Tu vérifies l'état réel avant d'écrire.
 - ❌ **Aucun `archives/` lu comme source de vérité.**
-- ❌ **Aucun travail en cours sans tâche écrite** avant un `/clear`.
+- ❌ **Aucun travail en cours sans tâche écrite** avant un redémarrage à froid.
 - ❌ **Aucun commit ou push non demandé.** Aucun secret dans un fichier tracké.
 - ❌ **Aucune cérémonie disproportionnée**, mais le scan d'obsolescence se fait toujours.
 - ❌ **Aucun texte qui sent le généré.** Voir le skill `style-redaction`.
@@ -334,7 +345,7 @@ le symptôme d'une clôture bâclée, et ça se corrige avant de coder, pas apr�
 | `references/DOCS-SYSTEM.md` | Organisation de `docs/`, critère « mérite une fiche », en-têtes de statut, index, ADR |
 | `references/ARCHIVAGE.md` | Arbre de décision archiver ou corriger ou supprimer, format d'en-tête, chemins, index |
 | `references/PROFILS-PROJETS.md` | Adapter la convention au type de projet (app, lib, infra, data, contenu, monorepo) |
-| `references/HANDOFF.md` | Test « prêt pour /clear » détaillé, anti-patterns de passation |
+| `references/HANDOFF.md` | Test « prêt pour un contexte neuf » détaillé, anti-patterns de passation |
 | `templates/` | Gabarits des piliers, des fiches `docs/`, des index, du bloc `CLAUDE.md` |
 | `$SKILL/scripts/ctx-init.sh` | Scaffolder la convention, sans rien écraser |
 | `$SKILL/scripts/ctx-audit.sh` | Rapport de dérive entre la doc et la réalité |

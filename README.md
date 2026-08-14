@@ -24,8 +24,16 @@ mkdir -p ~/.claude/skills
 cp -r skills/cloture-session ~/.claude/skills/
 ```
 
-Par cette voie les slash commands ne suivent pas, elles n'existent qu'en installation plugin. Les
-trois modes restent accessibles en les demandant en français.
+Sur Codex d'OpenAI, même dossier, autre chemin de scan :
+
+```bash
+cp -r skills/cloture-session .agents/skills/      # portée dépôt
+cp -r skills/cloture-session ~/.agents/skills/    # portée utilisateur
+```
+
+Par ces deux voies les slash commands `/cloture`, `/reprise-session` et `/init-contexte` ne
+suivent pas, elles n'existent qu'en installation plugin chez Claude Code. Le skill se déclenche
+quand même sur une demande en français, dans les trois modes.
 
 ## Claude web, et pourquoi c'est de peu d'intérêt ici
 

@@ -1,6 +1,7 @@
-# HANDOFF : le test « prêt pour /clear »
+# HANDOFF : le test « prêt pour un contexte neuf »
 
-> Le `/clear` est irréversible côté contexte. Ce qui n'a pas été écrit est perdu. Cette page est
+> Repartir à froid est irréversible côté contexte, que ce soit par le `/clear` de Claude Code ou
+> par le mécanisme équivalent d'un autre agent. Ce qui n'a pas été écrit est perdu. Cette page est
 > la barrière de sécurité avant de le déclencher.
 
 ## Le test, en une phrase
@@ -73,21 +74,21 @@ pour plus tard.
 
 | Anti-pattern | Pourquoi ça casse | À la place |
 |---|---|---|
-| « Continuer le refactor » | Après un `/clear`, personne ne sait où il en était | « Finir l'extraction de `parse()` vers `lib/parser.ts`, 3 appelants restent à migrer : `a.ts:12`, `b.ts:88`, `c.ts:40` » |
+| « Continuer le refactor » | Au retour, personne ne sait où il en était | « Finir l'extraction de `parse()` vers `lib/parser.ts`, 3 appelants restent à migrer : `a.ts:12`, `b.ts:88`, `c.ts:40` » |
 | Résumé chronologique de la session | La suite ne se déduit pas du récit | Un état : ce qui marche, ce qui est en cours, la prochaine action |
 | Doc écrite depuis le souvenir | Le souvenir garde un état intermédiaire, pas l'état final | Vérifier le fichier, la commande, le service |
 | Redater une fiche sans la relire | `docs/` devient un piège, le lecteur fait confiance à tort | Relire, corriger, puis dater |
 | Empiler les « État à la reprise » | Le lecteur ne sait plus lequel fait foi | Un seul bloc, réécrit |
 | Tout empiler dans `CLAUDE.md` | Il est chargé à chaque session, le signal se noie et le contexte se paie tout le temps | Une décision en ADR, un piège dans la fiche du module, une préférence seulement si elle est vraie en permanence |
-| Garder le faux « pour plus tard » | Il n'y a pas de plus tard, il y a un `/clear` | Corriger ou archiver, maintenant |
+| Garder le faux « pour plus tard » | Il n'y a pas de plus tard, il y a un redémarrage | Corriger ou archiver, maintenant |
 | Reporter la clôture « à la fin » | La fin arrive par manque de contexte, au pire moment | Clôturer quand le travail est cohérent, pas quand le contexte est plein |
 
 ---
 
 ## Quand clôturer
 
-Avant tout `/clear` volontaire, évidemment. Mais aussi quand une unité de travail cohérente est
-terminée, même si la session continue. Quand le contexte approche de la saturation, avant que la
+Avant tout redémarrage à froid volontaire, évidemment. Mais aussi quand une unité de travail
+cohérente est terminée, même si la session continue. Quand le contexte approche de la saturation, avant que la
 qualité baisse et pas après. Avant une interruption longue. Avant de passer à un sujet sans rapport.
 
 Une clôture précoce coûte quelques minutes. Une clôture manquée coûte une re-découverte complète,
@@ -95,7 +96,7 @@ et parfois du travail refait.
 
 ---
 
-## Après le `/clear`, la reprise
+## Au retour, la reprise
 
 Ordre de lecture, c'est le mode REPRISE du skill.
 
@@ -107,7 +108,7 @@ Ordre de lecture, c'est le mode REPRISE du skill.
 6. `git log --oneline -10` et `git status -s`, pour confronter au réel.
 
 Ne charge pas `archives/`. Ne lis pas tout `docs/`. Ne relis pas tout le CHANGELOG. La reprise
-doit coûter peu de contexte, sinon elle annule le bénéfice du `/clear`.
+doit coûter peu de contexte, sinon elle annule le bénéfice du redémarrage.
 
 Restitue en dix lignes maximum : où on en est, ce qui est en cours, la prochaine étape, les
 pièges. Toute incohérence entre la doc et le dépôt se corrige avant de coder. C'est le symptôme
