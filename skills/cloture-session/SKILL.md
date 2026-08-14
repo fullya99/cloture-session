@@ -1,7 +1,7 @@
 ---
 name: cloture-session
 description: "Clôture de session avant un /clear, et maintenance de la documentation vivante d'un projet, quel que soit son type. Synchronise les 3 piliers CODEMAP.md, TODOS.md, CHANGELOG.md, met à jour les fiches docs/ des modules et features touchés, et déplace vers archives/ tout ce qui est devenu faux, périmé ou remplacé, pour qu'une session neuve reprenne le travail sans perdre une information. Se déclenche sur : clôture ou fin de session, mise au propre, \"avant de clear\", \"range le projet\", \"documente ce qu'on a fait\", \"archive ce qui est obsolète\", doc vivante, CODEMAP, TODOS, CHANGELOG, /cloture. Couvre aussi l'installation de la convention dans un projet neuf (/init-contexte) et la reprise après un /clear (/reprise-session)."
-version: 3.2.0
+version: 3.2.1
 author: fullya99
 license: MIT
 platforms: [linux, macos, windows]
@@ -93,7 +93,8 @@ ANCETRES="$(d="$PWD"; while [ "$d" != "/" ]; do echo "$d/.agents/skills/cloture-
 
 SKILL="$(for d in "$CLAUDE_PLUGIN_ROOT/skills/cloture-session" \
   ".claude/skills/cloture-session" $ANCETRES \
-  "$HOME/.claude/skills/cloture-session" "$HOME/.agents/skills/cloture-session" \
+  "$HOME/.claude/skills/cloture-session" \
+  "$HOME/.codex/skills/cloture-session" "$HOME/.agents/skills/cloture-session" \
   $(find "$HOME/.claude/plugins/cache" -maxdepth 5 -type d -path '*/skills/cloture-session' 2>/dev/null | sort -r) \
   $(find "$HOME/.claude/plugins/marketplaces" -maxdepth 5 -type d -path '*/skills/cloture-session' 2>/dev/null); do
   [ -f "$d/scripts/ctx-audit.sh" ] && echo "$d" && break
@@ -104,6 +105,11 @@ done)"
 L'ordre est voulu. `CLAUDE_PLUGIN_ROOT` d'abord quand le skill tourne comme plugin, puis la
 portée projet chez Claude Code et chez Codex, puis la portée utilisateur des deux, puis les
 copies de plugin de Claude Code.
+
+Codex a deux répertoires de portée utilisateur, `~/.codex/skills/` où son installeur dépose, et
+`~/.agents/skills/` du standard ouvert. Les deux sont scannés, vérifié le 2026-08-14. Le premier
+passe avant parce qu'il porte la version que l'utilisateur a réellement installée, quand l'autre
+peut garder une copie posée à la main et devenue vieille.
 
 Un plugin installé existe en deux copies. `cache/<marketplace>/<plugin>/<version>/` porte la version
 réellement installée, `marketplaces/<marketplace>/` porte la pointe de `master` du dépôt. On cherche
