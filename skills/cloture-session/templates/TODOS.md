@@ -5,8 +5,11 @@
 
 ## 🔄 État à la reprise, {{DATE}}
 
-<!-- Bloc RÉÉCRIT à chaque clôture, jamais empilé. C'est ce qui est lu en premier après un
-     /clear, il doit suffire à reprendre sans poser de question. -->
+<!-- Bloc RÉÉCRIT à chaque clôture depuis l'état courant, jamais empilé. Quarante lignes au
+     plus. C'est ce qui est lu en premier après un redémarrage à froid, il doit suffire à
+     reprendre sans poser de question. Ce qui en sort a un propriétaire : un événement est déjà au
+     CHANGELOG, un piège va dans sa fiche ou sa carte de zone, une tâche va dans la liste plus
+     bas, une décision en ADR. Le récit ne se garde pas. -->
 
 **Où on en est** : <2 à 4 lignes factuelles, ce qui marche, ce qui est en place>
 
@@ -17,6 +20,10 @@
 **À savoir avant de toucher** : <état instable, travail à moitié appliqué, piège du moment>
 
 ---
+
+<!-- Pas de section « ce que cette session a produit », c'est du CHANGELOG. Pas de case cochée,
+     une tâche faite se supprime. Pas de section « décidé », une décision va en ADR ou nulle part.
+     Fichier entier : cible 150 lignes. -->
 
 ## 🔴 Bloqué
 

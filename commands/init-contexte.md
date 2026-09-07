@@ -28,8 +28,13 @@ puis leur portée utilisateur, puis les copies de plugin de Claude Code.
 Tu es dans le projet à équiper, pas dans le skill, donc un chemin relatif du genre
 `scripts/ctx-init.sh` ne résout pas.
 
-Le script pose les gabarits, et c'est tout. Le travail commence après, parce qu'un gabarit vide
-ne sert à personne.
+Le terrain n'est jamais le même deux fois : projet neuf, doc déjà rangée ailleurs, `AGENTS.md`
+sans `CLAUDE.md`, convention d'agent concurrente, ou `MEMORY.md` d'une version antérieure. Le
+script détecte lequel et l'annonce avant d'écrire, sans jamais toucher un fichier existant.
+
+Sur un gros projet déjà documenté et déjà obèse, la greffe est une clôture, pas une installation.
+Pose le kit, mesure, puis va directement en phase 5 du mode CLÔTURE plutôt que de suivre la
+suite de cette commande.
 
 Explore le projet **avant** d'écrire quoi que ce soit : arborescence, points d'entrée, fichier
 de build, CI, README, derniers commits. Puis remplis CODEMAP avec la carte réelle, TODOS avec
@@ -37,6 +42,17 @@ l'état réel, et crée les fiches `docs/` des modules qui le méritent (le crit
 `references/DOCS-SYSTEM.md`). Les choix déjà pris et visibles dans le projet, qui engagent la
 suite, deviennent des ADR dans `docs/decisions/`. Ce qui doit être vrai à chaque instant va dans
 `CLAUDE.md`, et rien d'autre.
+
+Sur un grand projet, plus de 600 fichiers, pose une carte par zone dès l'INIT plutôt que
+d'attendre que le CODEMAP racine déborde :
+
+```bash
+bash "$SKILL/scripts/ctx-audit.sh" --budget          # liste les zones candidates
+bash "$SKILL/scripts/ctx-init.sh" --zone <répertoire>  # pose la carte, --with-claude si la zone a ses règles
+```
+
+Le CODEMAP racine d'un grand projet naît comme un index qui pointe vers ces cartes, il ne
+recopie pas leur contenu.
 
 Ce que tu ne peux pas déduire du projet, demande-le. Ne l'invente jamais, une carte fausse est
 pire que pas de carte du tout.

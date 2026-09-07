@@ -1,5 +1,5 @@
 ---
-description: Clôture de session avant un /clear. Synchronise les 3 piliers, documente les modules touchés, archive tout ce qui est obsolète ou faux.
+description: Clôture de session avant un /clear. Synchronise les 3 piliers, documente les modules touchés, archive tout ce qui est obsolète ou faux, et remet chaque fichier dans son budget.
 argument-hint: [note libre sur ce qui a été fait, optionnel]
 ---
 
@@ -7,7 +7,7 @@ Note de session, si elle est fournie : $ARGUMENTS
 
 Lance le skill **cloture-session** en **mode CLÔTURE**.
 
-Lis d'abord `SKILL.md` du skill, puis applique les phases 0 à 6 dans l'ordre. Charge le skill
+Lis d'abord `SKILL.md` du skill, puis applique les phases 0 à 7 dans l'ordre. Charge le skill
 `style-redaction` avant d'écrire la moindre ligne, et les références seulement quand tu en as
 besoin, en particulier `references/ARCHIVAGE.md` au moment de la phase 4.
 
@@ -26,7 +26,11 @@ SKILL="$(for d in "$CLAUDE_PLUGIN_ROOT/skills/cloture-session" \
   [ -f "$d/scripts/ctx-audit.sh" ] && echo "$d" && break
 done)"
 bash "$SKILL/scripts/ctx-audit.sh"
+bash "$SKILL/scripts/ctx-audit.sh" --budget
 ```
+
+La mesure du budget se fait deux fois, en phase 0 pour cadrer et en phase 5 pour vérifier ce qui
+reste. Un `[!!]` ne se reporte pas d'une clôture à l'autre.
 
 L'ordre couvre l'installation en plugin, puis la portée projet chez Claude Code et chez Codex,
 puis leur portée utilisateur, puis les copies de plugin de Claude Code.
@@ -44,6 +48,13 @@ Rappels qui coûtent cher si tu les oublies :
 - Tu vérifies l'état réel avant d'écrire. La doc existante n'est pas une source fiable, c'est
   justement ce que tu es en train d'auditer.
 - Tu mets à jour tous les niveaux touchés, pas seulement le répertoire courant.
+- Le bloc de reprise se réécrit depuis l'état courant, 40 lignes, et ce que tu en retires a un
+  propriétaire.
+- Un journal qui déborde se fait tourner avec `ctx-rotation.sh`, en `--dry-run` d'abord, il ne se
+  résume pas.
+- Un document obsolète s'archive avec `bash "$SKILL/scripts/ctx-archive.sh"`, jamais un `git mv`
+  à la main : la ligne d'index et la vérification finale sautent, et c'est justement l'étape
+  qu'on oublie.
 - Tu ne commites rien sans qu'on te le demande.
 
 Si le projet n'a pas encore le kit de contexte, fais INIT puis CLÔTURE dans la foulée, sans

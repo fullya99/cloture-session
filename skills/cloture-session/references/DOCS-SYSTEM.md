@@ -107,11 +107,18 @@ lecteur qui cherche une fiche disparue doit trouver où elle est partie sans avo
 Commence par la conclusion. Un lecteur qui s'arrête après trois lignes doit déjà avoir
 l'essentiel.
 
-Reste court. Un gros document n'est jamais mis à jour, donc il ment. Une fiche qui dépasse
-200 lignes se scinde.
+Reste court. Un gros document n'est jamais mis à jour, donc il ment. Cible 200 lignes, alerte à
+250, blocage à 300, mesuré par `ctx-audit.sh --budget`.
+
+Une fiche de module qui gonfle de pièges est souvent une zone qui s'ignore. Quand le module a un
+répertoire, ses pièges vont dans `<zone>/CODEMAP.md`, et la fiche garde le comment et le
+pourquoi. Voir `references/ZONES.md`.
 
 Ne paraphrase pas le code. Le code dit quoi, la fiche dit pourquoi, comment ça s'articule, et
 ce qui casse si on y touche.
+
+Sur une fiche déjà longue, une profondeur de titres au-delà de quatre niveaux signale en général
+plusieurs sujets, règle de style de GitLab. `ctx-audit.sh` le signale.
 
 Cite des chemins réels et cliquables comme `src/auth/session.ts:42`, pas des descriptions vagues.
 
@@ -155,7 +162,10 @@ Pour chaque zone touchée par la session :
 1. Liste les fiches dont la `Portée` recoupe les fichiers modifiés. `ctx-audit.sh` le fait pour toi.
 2. Chaque fiche recoupée est **relue**, pas seulement redatée. Redater sans relire, c'est la
    façon la plus rapide de transformer `docs/` en piège.
-3. Corrige, puis passe en `✅ à jour, vérifié le <aujourd'hui>`. Si le sujet a disparu, direction
-   `archives/`.
+3. Corrige, puis passe en `✅ à jour, vérifié le <aujourd'hui>`. Si le sujet a disparu, la fiche
+   part par `$SKILL/scripts/ctx-archive.sh`, qui vérifie les références entrantes avant de
+   déplacer.
 4. Crée les fiches manquantes pour ce qui remplit un des critères plus haut.
 5. Remets `docs/README.md` en cohérence.
+6. Chaque fiche au-dessus de 250 lignes se scinde en deux sujets, ou sort son récit vers
+   `archives/` s'il ne sert plus à décider.

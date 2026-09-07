@@ -58,6 +58,8 @@ pour plus tard.
 - [ ] Ce qui est obsolète est dans `archives/`, avec en-tête et ligne d'index.
 - [ ] Aucune suppression silencieuse.
 - [ ] Les statuts `🔴` de `docs/` ont été traités. Les `🟡` sont vérifiés ou datés d'aujourd'hui.
+- [ ] `ctx-audit.sh --budget` ne rend aucun `[!!]`, chaque `[!]` a son geste ou sa tâche datée.
+- [ ] Aucune section de session ni case cochée dans TODOS, ni état ni récit dans `CLAUDE.md`.
 
 ### Sécurité
 - [ ] Aucun secret dans un fichier tracké : clé, token, mot de passe, URL signée.
@@ -67,6 +69,7 @@ pour plus tard.
 ### Multi-niveaux
 - [ ] Chaque niveau touché a été mis à jour : racine, sous-projet, configuration partagée.
 - [ ] Le parent pointe vers la doc des enfants, il ne l'a pas absorbée.
+- [ ] Chaque zone touchée a sa carte à jour, et chaque zone est citée dans le CODEMAP racine.
 
 ---
 
@@ -82,6 +85,9 @@ pour plus tard.
 | Tout empiler dans `CLAUDE.md` | Il est chargé à chaque session, le signal se noie et le contexte se paie tout le temps | Une décision en ADR, un piège dans la fiche du module, une préférence seulement si elle est vraie en permanence |
 | Garder le faux « pour plus tard » | Il n'y a pas de plus tard, il y a un redémarrage | Corriger ou archiver, maintenant |
 | Reporter la clôture « à la fin » | La fin arrive par manque de contexte, au pire moment | Clôturer quand le travail est cohérent, pas quand le contexte est plein |
+| Empiler le bloc de reprise en journal | Le lecteur paie 40 000 tokens avant de savoir quoi faire | Réécrire depuis l'état courant, 40 lignes, classer ce qui sort |
+| Un compte-rendu de session dans TODOS | TODOS ne garde que le futur | L'entrée va au CHANGELOG |
+| Tenir le seuil en effaçant un piège | Le piège revient au prix d'une session | Il descend dans la carte de sa zone ou la fiche du module |
 
 ---
 
@@ -101,11 +107,16 @@ et parfois du travail refait.
 Ordre de lecture, c'est le mode REPRISE du skill.
 
 1. `CLAUDE.md`, les règles et les préférences durables.
-2. `TODOS.md`, le bloc « État à la reprise » d'abord.
-3. `CODEMAP.md`, pour localiser ce que tu vas toucher, et ses zones sensibles pour les pièges.
-4. `CHANGELOG.md`, 2 ou 3 entrées, pas plus.
-5. Les fiches `docs/` des seuls modules concernés, et l'ADR si tu reviens sur un choix tranché.
-6. `git log --oneline -10` et `git status -s`, pour confronter au réel.
+2. Lecture partielle, jamais un pilier entier :
+
+   ```bash
+   awk '/^## /{n++} n<=1' TODOS.md      # le bloc de reprise, rien d'autre
+   grep -n '^## ' CODEMAP.md            # le plan, puis la section utile
+   awk '/^## /{n++} n<=3' CHANGELOG.md  # les 3 dernières entrées
+   ```
+3. Puis la carte de la seule zone concernée par la tâche.
+4. Les fiches `docs/` des seuls modules concernés, et l'ADR si tu reviens sur un choix tranché.
+5. `git log --oneline -10` et `git status -s`, pour confronter au réel.
 
 Ne charge pas `archives/`. Ne lis pas tout `docs/`. Ne relis pas tout le CHANGELOG. La reprise
 doit coûter peu de contexte, sinon elle annule le bénéfice du redémarrage.

@@ -1,8 +1,9 @@
 <!-- contexte:convention
 profil: {{PROFIL}}
+taille: {{TAILLE}}
 piliers: CODEMAP.md, TODOS.md, CHANGELOG.md
-docs: docs/
-archives: archives/
+docs: {{DOCS}}
+archives: {{ARCHIVES}}
 langue: fr
 -->
 
@@ -10,6 +11,8 @@ langue: fr
 
 > Où ça se trouve, et qu'est-ce qui touche quoi.
 > Dernière mise à jour : {{DATE}}
+
+<!-- Cible 250 lignes, blocage à 400. Ce qui déborde descend dans une carte de zone. -->
 
 **En une phrase** : <ce que fait ce projet, et pour qui>.
 
@@ -77,13 +80,27 @@ langue: fr
 
 ## Zones sensibles
 
+<!-- Seulement ce qui n'appartient à aucune zone ni à aucune fiche. Un piège qui concerne une
+     zone va dans sa carte. -->
+
 - `<chemin>` : <généré, ne pas éditer à la main, ou effet de bord, ou convention non évidente>
+
+---
+
+## Zones
+
+<!-- Un répertoire qui porte sa propre carte. Liste et POINTE, ne recopie rien. Vide sur un
+     petit projet, c'est normal. -->
+
+| Zone | Chemin | Sa carte | Ses règles |
+|---|---|---|---|
+| <nom> | `<chemin>` | [CODEMAP](<chemin>/CODEMAP.md) | `<chemin>/CLAUDE.md` ou « aucune » |
 
 ---
 
 ## Sous-projets
 
-<!-- Monorepo uniquement. Liste et POINTE, ne recopie jamais leur doc. -->
+<!-- Monorepo uniquement. Un sous-projet porte ses trois piliers et se clôture à part. -->
 
 | Sous-projet | Chemin | Sa carte |
 |---|---|---|

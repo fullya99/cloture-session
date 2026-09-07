@@ -7,8 +7,8 @@
     {
       "name": "cloture-session",
       "source": "./",
-      "description": "Convention de contexte pour n'importe quel projet. Clôture de session avant un /clear, reprise sans perte, archivage de tout ce qui devient faux.",
-      "version": "3.2.1"
+      "description": "Convention de contexte pour n'importe quel projet, de dix fichiers à plusieurs milliers. Clôture de session avant un /clear, reprise sans perte, archivage de tout ce qui devient faux, et budget tenu : bloc de reprise borné, journaux qui tournent, carte par zone.",
+      "version": "4.0.0"
     }
   ]
 }

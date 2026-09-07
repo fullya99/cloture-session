@@ -1,8 +1,10 @@
 # Archives, {{PROJECT_NAME}}
 
-> ⚠️ **Rien ici n'est une source de vérité.** Ce répertoire garde ce qui a été vrai et ne l'est
-> plus. On ne le lit pas en reprise de session, on ne le cite pas depuis une fiche vivante.
-> Uniquement sur demande explicite d'archéologie.
+> ⚠️ **Rien ici n'est une source de vérité.** Ce répertoire garde deux choses, ce qui a été vrai
+> et ne l'est plus, et ce qui est encore vrai mais froid, les entrées anciennes des journaux mises
+> de côté par rotation. L'en-tête de chaque fichier dit lequel des deux il est. On ne lit rien ici
+> en reprise de session, on ne le cite pas depuis une fiche vivante. Uniquement sur demande
+> explicite d'archéologie.
 >
 > La documentation à jour est dans `docs/` et dans les 3 piliers à la racine.
 
@@ -31,6 +33,16 @@ casse ses liens relatifs.
 **Ne vont pas ici** : le code mort (git le garde), les builds et caches, les secrets même
 expirés, les brouillons jamais publiés, les règles durables devenues fausses (supprimées), les ADR supersédés
 (ils restent en place, marqués).
+
+## Y chercher quelque chose
+
+```bash
+bash "$SKILL/scripts/ctx-archeo.sh" <motif>          # provenance et extraits, sortie bornée
+bash "$SKILL/scripts/ctx-archeo.sh" --liste          # inventaire, une entrée par fichier
+```
+
+Pas un `grep` nu : il rend une ligne sans son en-tête, donc on prend une entrée froide pour une
+vérité courante.
 
 ## Index
 

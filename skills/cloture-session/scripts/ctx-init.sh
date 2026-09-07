@@ -5,6 +5,11 @@
 # Non destructif. Un fichier qui existe deja n'est JAMAIS touche.
 # Usage :
 #   bash ctx-init.sh [--root <chemin>] [--profil <profil>] [--dry-run] [--with-claude]
+#   bash ctx-init.sh --zone <repertoire> [--with-claude] [--dry-run]
+#
+# --zone : pose une carte de zone, <repertoire>/CODEMAP.md, depuis le gabarit. Avec
+#          --with-claude, pose aussi <repertoire>/CLAUDE.md, les regles de la zone.
+#          Ne touche pas aux piliers de la racine.
 #
 set -eu
 
@@ -14,6 +19,7 @@ TPL="$SKILL_DIR/templates"
 
 ROOT=""
 PROFIL=""
+ZONE=""
 DRY=0
 WITH_CLAUDE=0
 
@@ -21,10 +27,11 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --root)        ROOT="${2:-}"; shift 2 ;;
     --profil)      PROFIL="${2:-}"; shift 2 ;;
+    --zone)        ZONE="${2:-}"; shift 2 ;;
     --dry-run)     DRY=1; shift ;;
     --with-claude) WITH_CLAUDE=1; shift ;;
     -h|--help)
-      sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
       exit 0 ;;
     *) echo "Option inconnue : $1" >&2; exit 2 ;;
   esac
@@ -66,7 +73,78 @@ detect_profil() {
   echo non-technique
 }
 
+# --- taille du projet, en fichiers hors dependances ---------------------------
+# Les memes exclusions que ctx-audit.sh, les deux doivent compter pareil.
+detect_taille() {
+  local r="$1" n
+  n="$(cd "$r" && find . -type f \
+        -not -path './.git/*' -not -path './archives/*' -not -path '*/node_modules/*' \
+        -not -path '*/vendor/*' -not -path '*/.venv/*' -not -path '*/venv/*' \
+        -not -path '*/dist/*' -not -path '*/build/*' -not -path '*/target/*' \
+        -not -path '*/.next/*' -not -path '*/__pycache__/*' -not -path '*/.cache/*' \
+        2>/dev/null | wc -l | tr -d ' ')"
+  if   [ "$n" -lt 150 ]; then echo "petite $n"
+  elif [ "$n" -le 600 ]; then echo "moyenne $n"
+  else echo "grande $n"; fi
+}
+
 [ -n "$PROFIL" ] || PROFIL="$(detect_profil "$ROOT")"
+TAILLE_ET_NB="$(detect_taille "$ROOT")"
+TAILLE="${TAILLE_ET_NB%% *}"
+NB_FICHIERS="${TAILLE_ET_NB#* }"
+
+# --- le terrain ---------------------------------------------------------------
+# On se greffe sur ce qui existe. Un projet deja documente a son repertoire de
+# doc, son porteur de regles et parfois une autre convention d'agent. Poser des
+# gabarits vides a cote produirait deux sources de verite le premier jour.
+DOCS_DIR=""
+for d in docs doc documentation; do
+  [ -d "$ROOT/$d" ] && { DOCS_DIR="$d"; break; }
+done
+DOCS_EXISTAIT=1
+[ -n "$DOCS_DIR" ] || { DOCS_DIR="docs"; DOCS_EXISTAIT=0; }
+
+ARCHIVES_DIR=""
+for d in archives archive; do
+  [ -d "$ROOT/$d" ] && { ARCHIVES_DIR="$d"; break; }
+done
+[ -n "$ARCHIVES_DIR" ] || ARCHIVES_DIR="archives"
+
+# Le porteur des regles. CLAUDE.md si present, sinon AGENTS.md si present, sinon
+# CLAUDE.md a creer. Un depot lu par Codex seul n'a pas a recevoir un CLAUDE.md.
+REGLES="CLAUDE.md"
+if [ ! -f "$ROOT/CLAUDE.md" ] && [ -f "$ROOT/AGENTS.md" ]; then
+  REGLES="AGENTS.md"
+fi
+
+# Les quatre sous-repertoires de docs/ ne se creent que si le repertoire est neuf,
+# vide, ou deja de cette forme. Sinon on laisse la structure existante tranquille.
+CREER_SOUS_DOCS=1
+if [ "$DOCS_EXISTAIT" -eq 1 ]; then
+  CREER_SOUS_DOCS=0
+  for d in modules features ops decisions; do
+    [ -d "$ROOT/$DOCS_DIR/$d" ] && CREER_SOUS_DOCS=1
+  done
+  [ -z "$(ls -A "$ROOT/$DOCS_DIR" 2>/dev/null)" ] && CREER_SOUS_DOCS=1
+fi
+
+ADR_DIRS=""
+for d in adr "$DOCS_DIR/adr" "$DOCS_DIR/decisions" "$DOCS_DIR/architecture/decisions"; do
+  [ -d "$ROOT/$d" ] && ADR_DIRS="$ADR_DIRS $d"
+done
+CONCUR=""
+for c in AGENTS.md GEMINI.md .cursorrules .clinerules .windsurfrules CONVENTIONS.md \
+         .github/copilot-instructions.md .cursor/rules memory-bank .roo MEMORY.md; do
+  [ "$c" = "$REGLES" ] && continue
+  [ -e "$ROOT/$c" ] && CONCUR="$CONCUR $c"
+done
+
+# La ou vont les decisions : le repertoire existant s'il y en a un, sinon celui
+# de la convention.
+DECISIONS="$DOCS_DIR/decisions"
+for d in $ADR_DIRS; do DECISIONS="$d"; break; done
+RACINE_MD="$(cd "$ROOT" && find . -maxdepth 1 -name '*.md' 2>/dev/null | sed 's|^\./||' \
+  | grep -vE '^(CODEMAP|TODOS|CHANGELOG|CLAUDE|AGENTS|README|MEMORY)\.md$' | sort | tr '\n' ' ' || true)"
 
 # --- helpers ------------------------------------------------------------------
 CREATED=0
@@ -86,6 +164,10 @@ render() { # <source> <destination>
   sed -e "s|{{PROJECT_NAME}}|$PROJECT_NAME|g" \
       -e "s|{{DATE}}|$DATE|g" \
       -e "s|{{PROFIL}}|$PROFIL|g" \
+      -e "s|{{TAILLE}}|$TAILLE|g" \
+      -e "s|{{ZONE}}|$ZONE|g" \
+      -e "s|{{DOCS}}|$DOCS_DIR/|g" \
+      -e "s|{{ARCHIVES}}|$ARCHIVES_DIR/|g" \
       "$src" > "$dst"
 }
 
@@ -97,12 +179,56 @@ mkdirp() { # <chemin>
   mkdir -p "$1"
 }
 
+# --- mode zone ----------------------------------------------------------------
+if [ -n "$ZONE" ]; then
+  ZONE="${ZONE%/}"
+  [ -d "$ROOT/$ZONE" ] || { echo "Zone introuvable : $ROOT/$ZONE" >&2; exit 1; }
+  echo "Carte de zone"
+  echo "  racine  : $ROOT"
+  echo "  zone    : $ZONE"
+  [ "$DRY" -eq 1 ] && echo "  mode    : simulation, rien ne sera ecrit"
+  echo
+  render "$TPL/CODEMAP-zone.md" "$ROOT/$ZONE/CODEMAP.md"
+  if [ "$WITH_CLAUDE" -eq 1 ]; then
+    render "$TPL/CLAUDE-zone.md" "$ROOT/$ZONE/CLAUDE.md"
+  else
+    echo "  . $ZONE/CLAUDE.md non cree, relance avec --with-claude si la zone a des regles a elle"
+  fi
+  cat <<EOF
+
+A faire maintenant :
+  1. Remplir $ZONE/CODEMAP.md depuis le code reel de la zone : entrees, flux, pieges.
+  2. Descendre dans cette carte les zones sensibles du CODEMAP de la racine qui parlent de
+     $ZONE, et les commandes propres a la zone. Laisser un pointeur, pas une copie.
+  3. Ajouter la zone a la table « Zones » du CODEMAP de la racine.
+EOF
+  exit 0
+fi
+
 # --- execution ----------------------------------------------------------------
 echo "Convention de contexte"
 echo "  racine  : $ROOT"
 echo "  projet  : $PROJECT_NAME"
 echo "  profil  : $PROFIL"
+echo "  taille  : $TAILLE, $NB_FICHIERS fichiers hors dependances"
 [ "$DRY" -eq 1 ] && echo "  mode    : simulation, rien ne sera ecrit"
+echo
+
+echo "Le terrain, ce sur quoi on se greffe"
+if [ "$DOCS_EXISTAIT" -eq 1 ]; then
+  echo "  = $DOCS_DIR/ existe deja, la convention l'adopte au lieu d'en creer un autre"
+  [ "$CREER_SOUS_DOCS" -eq 0 ] \
+    && echo "    sa structure n'est pas celle de la convention, les sous-repertoires ne seront pas crees"
+else
+  echo "  . aucune documentation existante, $DOCS_DIR/ va etre cree"
+fi
+echo "  . porteur des regles : $REGLES"
+[ -n "$ADR_DIRS" ] && echo "  = decisions deja quelque part :$ADR_DIRS"
+[ -n "$RACINE_MD" ] && echo "  = markdown a la racine, hors kit : $RACINE_MD"
+if [ -n "$CONCUR" ]; then
+  echo "  ! conventions ou memoires concurrentes :$CONCUR"
+  echo "    a traiter, sinon deux sources de verite. Voir la fin de ce message."
+fi
 echo
 
 echo "Piliers"
@@ -112,41 +238,54 @@ render "$TPL/CHANGELOG.md" "$ROOT/CHANGELOG.md"
 
 echo
 echo "Documentation"
-mkdirp "$ROOT/docs/modules"
-mkdirp "$ROOT/docs/features"
-mkdirp "$ROOT/docs/ops"
-mkdirp "$ROOT/docs/decisions"
-render "$TPL/docs/README.md" "$ROOT/docs/README.md"
+if [ "$CREER_SOUS_DOCS" -eq 1 ]; then
+  mkdirp "$ROOT/$DOCS_DIR/modules"
+  mkdirp "$ROOT/$DOCS_DIR/features"
+  mkdirp "$ROOT/$DOCS_DIR/ops"
+  mkdirp "$ROOT/$DOCS_DIR/decisions"
+else
+  mkdirp "$ROOT/$DOCS_DIR"
+  echo "  = sous-repertoires laisses tels quels, la structure existante fait foi"
+fi
+render "$TPL/docs/README.md" "$ROOT/$DOCS_DIR/README.md"
 
 echo
 echo "Archives"
-render "$TPL/archives/README.md" "$ROOT/archives/README.md"
+render "$TPL/archives/README.md" "$ROOT/$ARCHIVES_DIR/README.md"
 
 echo
 echo "Regles projet"
-if [ -f "$ROOT/CLAUDE.md" ]; then
-  if grep -q "Convention de contexte" "$ROOT/CLAUDE.md" 2>/dev/null; then
-    echo "  = CLAUDE.md               contient deja la convention"
+if [ -f "$ROOT/$REGLES" ]; then
+  if grep -q "Convention de contexte" "$ROOT/$REGLES" 2>/dev/null; then
+    printf '  = %-24s contient deja la convention\n' "$REGLES"
   elif [ "$WITH_CLAUDE" -eq 1 ]; then
-    echo "  ~ CLAUDE.md               bloc de convention ajoute a la fin"
+    printf '  ~ %-24s bloc de convention ajoute a la fin\n' "$REGLES"
     if [ "$DRY" -eq 0 ]; then
-      printf '\n' >> "$ROOT/CLAUDE.md"
-      sed '/^<!--$/,/^-->$/d' "$TPL/CLAUDE-snippet.md" >> "$ROOT/CLAUDE.md"
+      printf '\n' >> "$ROOT/$REGLES"
+      sed -e '/^<!--$/,/^-->$/d' \
+          -e "s|docs/README.md|$DOCS_DIR/README.md|g" \
+          -e "s|docs/decisions/|$DOCS_DIR/decisions/|g" \
+          -e "s|\`archives/\`|\`$ARCHIVES_DIR/\`|g" \
+          "$TPL/CLAUDE-snippet.md" >> "$ROOT/$REGLES"
     fi
   else
-    echo "  ! CLAUDE.md existe mais ne mentionne pas la convention."
+    echo "  ! $REGLES existe mais ne mentionne pas la convention."
     echo "    Relance avec --with-claude, ou colle a la main le bloc de :"
     echo "    $TPL/CLAUDE-snippet.md"
   fi
 else
-  printf '  + %-24s cree\n' "CLAUDE.md"
+  printf '  + %-24s cree\n' "$REGLES"
   CREATED=$((CREATED + 1))
   if [ "$DRY" -eq 0 ]; then
     {
-      echo "# CLAUDE.md, $PROJECT_NAME"
+      echo "# $REGLES, $PROJECT_NAME"
       echo
-      sed '/^<!--$/,/^-->$/d' "$TPL/CLAUDE-snippet.md"
-    } > "$ROOT/CLAUDE.md"
+      sed -e '/^<!--$/,/^-->$/d' \
+          -e "s|docs/README.md|$DOCS_DIR/README.md|g" \
+          -e "s|docs/decisions/|$DOCS_DIR/decisions/|g" \
+          -e "s|\`archives/\`|\`$ARCHIVES_DIR/\`|g" \
+          "$TPL/CLAUDE-snippet.md"
+    } > "$ROOT/$REGLES"
   fi
 fi
 
@@ -154,14 +293,52 @@ echo
 echo "Bilan : $CREATED cree(s), $SKIPPED conserve(s)."
 cat <<EOF
 
-A faire maintenant, les gabarits sont vides et ne servent a rien en l'etat :
-  1. Lire le projet (arborescence, points d'entree, build, CI) avant d'ecrire.
-  2. Remplir CODEMAP.md avec la carte reelle.
-  3. Remplir TODOS.md avec l'etat reel, puis le bloc "Etat a la reprise".
-  4. Creer les fiches docs/ des modules qui le meritent, et un ADR dans docs/decisions/
-     pour les choix deja pris qui engagent la suite. Le critere est dans
-     $SKILL_DIR/references/DOCS-SYSTEM.md
-  5. Mettre dans CLAUDE.md ce qui doit etre vrai a chaque instant, et rien d'autre.
-
-Verifier la derive a tout moment : bash $SCRIPT_DIR/ctx-audit.sh
+A faire maintenant, les gabarits sont vides et ne servent a rien en l etat :
+  1. Lire le projet avant d ecrire : arborescence, points d entree, build, CI, derniers commits.
 EOF
+if [ -n "$RACINE_MD" ] || [ "$DOCS_EXISTAIT" -eq 1 ]; then
+  cat <<EOF
+  2. Ranger la doc qui existe deja. Chaque document a un proprietaire dans la convention :
+     une carte va au CODEMAP, un etat va a TODOS, un historique au CHANGELOG, une decision
+     dans $DECISIONS/, le reste en fiche $DOCS_DIR/. Ce qui est faux part en archive,
+     par ctx-archive.sh, jamais par une suppression.
+  3. Remplir CODEMAP.md avec la carte reelle, en pointant vers ce qui existe au lieu de le recopier.
+EOF
+else
+  cat <<EOF
+  2. Verifier le bloc contexte:convention en tete du CODEMAP, le script a pose le profil,
+     la taille et les chemins detectes. Ce bloc rend la convention auto-descriptive.
+  3. Remplir CODEMAP.md avec la carte reelle.
+EOF
+fi
+cat <<EOF
+  4. Remplir TODOS.md avec l etat reel, puis le bloc "Etat a la reprise", 40 lignes au plus.
+  5. Creer les fiches de $DOCS_DIR/ pour ce qui le merite, le critere est dans
+     $SKILL_DIR/references/DOCS-SYSTEM.md. Pas de fiche vide, pas de fiche pour tout.
+  6. Mettre dans $REGLES ce qui doit etre vrai a chaque instant, et rien d autre.
+     Ni etat, ni recit, ni date d evenement. Cible 100 lignes.
+EOF
+if [ "$TAILLE" = grande ]; then
+  cat <<EOF
+  7. Le projet est GRAND. Le CODEMAP de la racine est un index qui pointe, pas une carte
+     complete. Poser une carte par zone des maintenant, les candidates sont dans la section
+     10 de l audit :
+       bash $SCRIPT_DIR/ctx-audit.sh --budget
+       bash $SCRIPT_DIR/ctx-init.sh --zone <repertoire>
+EOF
+fi
+if [ -n "$CONCUR" ]; then
+  cat <<EOF
+
+Conventions concurrentes trouvees :$CONCUR
+  Deux sources de verite divergent toujours, et rien ne le signale au moment ou ça arrive.
+  Pour chacune, une seule question : qui fait foi ? Celle qui perd est archivee, avec sa raison.
+  Cas particuliers. Un AGENTS.md a cote d un CLAUDE.md ne se lit pas par les memes agents,
+  le raccord est une ligne @AGENTS.md en tete du CLAUDE.md. Un MEMORY.md vient d une version
+  anterieure de cette convention, son contenu se repartit : decisions vers $DOCS_DIR/decisions/,
+  pieges vers la fiche du module, preferences vers $REGLES, environnement vers le CODEMAP.
+EOF
+fi
+echo
+echo "Verifier la derive et le budget a tout moment : bash $SCRIPT_DIR/ctx-audit.sh"
+echo "Chercher dans les archives sans les charger : bash $SCRIPT_DIR/ctx-archeo.sh <motif>"

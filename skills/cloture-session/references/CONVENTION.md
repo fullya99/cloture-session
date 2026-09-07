@@ -31,8 +31,9 @@ que les autres surfaces portent déjà. Chaque savoir a donc un propriétaire un
 | Ce que tu as appris | Où ça va |
 |---|---|
 | Décision et son pourquoi | `docs/decisions/ADR-NNNN-*.md` |
-| Piège d'un module | La fiche `docs/modules/<module>.md` de ce module |
-| Piège sans module identifiable | `CODEMAP.md`, section zones sensibles |
+| Piège d'un module | La fiche du module, ou la carte de sa zone `<zone>/CODEMAP.md` |
+| Une piste écartée et pourquoi | L'ADR de la décision, ou les pièges de la fiche |
+| Piège sans module identifiable et sans zone | `CODEMAP.md`, section zones sensibles |
 | Préférence durable de l'utilisateur | `CLAUDE.md` |
 | Contrainte d'environnement, accès, outil disponible | `CODEMAP.md`, section dépendances |
 | Fait externe daté et périssable | `docs/veille/`, ou une entrée de `CHANGELOG.md` |
@@ -56,6 +57,7 @@ tout le reste suit.
 ```html
 <!-- contexte:convention
 profil: app
+taille: petite
 piliers: CODEMAP.md, TODOS.md, CHANGELOG.md
 docs: docs/
 archives: archives/
@@ -63,7 +65,13 @@ langue: fr
 -->
 ```
 
-Sans ce bloc, on suppose les chemins par défaut ci-dessus.
+Sans ce bloc, on suppose les chemins par défaut ci-dessus. `taille` se calcule en nombre de
+fichiers, hors dépendances : petite sous 150, moyenne jusqu'à 600, grande au-delà. `ctx-init.sh`
+la mesure et l'écrit.
+
+Sur une codebase moyenne ou grande, la carte se découpe par zones. Une zone est un répertoire qui
+porte la sienne, `<zone>/CODEMAP.md`. L'état et le journal restent uniques à la racine. Le détail
+est dans `references/ZONES.md`.
 
 **Multi-niveaux** : chaque unité autonome (racine, package d'un monorepo, sous-projet) a son
 propre kit. Le parent ne recopie pas le contenu des enfants, il les liste et pointe vers eux.
@@ -94,14 +102,16 @@ modifie. Ce fichier n'est ni une doc d'API ni un tutoriel.
    besoin pour tourner. **Jamais de secret** : tu dis où est la clé, pas ce qu'elle vaut.
 8. **Commandes.** Install, run, test, lint, build, deploy. Les vraies, celles que tu as testées.
 9. **Zones sensibles.** Code généré à ne pas éditer, fichiers à ne toucher qu'avec précaution,
-   conventions non évidentes.
-10. La date de dernière mise à jour.
+   conventions non évidentes. Racine : seulement ce qui n'a ni zone ni fiche. Ce qui concerne une
+   zone descend dans `<zone>/CODEMAP.md`.
+10. **Zones.** Une table qui liste les zones du projet et pointe vers leur carte, sans recopier.
+11. La date de dernière mise à jour.
 
 **Ce qui n'y va pas** : l'historique (CHANGELOG), les tâches (TODOS), le pourquoi des décisions
 (`docs/decisions/`), les détails d'implémentation (`docs/modules/`).
 
-**Longueur visée** : entre 100 et 250 lignes. Au-delà, c'est le signe qu'une partie du contenu
-doit descendre dans `docs/`.
+**Longueur visée** : cible 250 lignes, alerte à 300, blocage à 400. Ce qui déborde descend dans
+une carte de zone, voir `references/ZONES.md`.
 
 ---
 
@@ -136,8 +146,8 @@ doit descendre dans `docs/`.
 
 **Les règles**
 
-Le bloc « État à la reprise » est **réécrit** à chaque clôture, jamais empilé. C'est un état,
-pas un journal.
+Le bloc « État à la reprise » tient en 40 lignes, et se **réécrit depuis l'état courant** à
+chaque clôture, jamais en éditant le bloc précédent. C'est un état, pas un journal.
 
 Une tâche cochée n'est pas archivée, elle est **supprimée**. Sa trace est au CHANGELOG. TODOS
 ne garde que le futur.
@@ -148,62 +158,54 @@ se reprend tout de suite.
 
 Rien d'entamé ne doit rester hors de ce fichier avant un `/clear`.
 
+**Ce qui sort du bloc a un propriétaire**
+
+| Ce que la phrase est | Où elle va |
+|---|---|
+| un événement, quelque chose qui a été fait | déjà au CHANGELOG, on la retire |
+| un piège, une contrainte | fiche du module, ou CODEMAP de la zone, ou zones sensibles racine si aucune zone |
+| une tâche | la liste de TODOS, avec son ancrage |
+| une décision et son pourquoi | ADR |
+| une piste écartée et pourquoi | l'ADR de la décision, ou les pièges de la fiche |
+| du récit, de l'insistance, des majuscules | rien, ça ne se garde pas |
+
+Trois interdits dans TODOS : pas de section « ce que cette session a produit », c'est du
+CHANGELOG. Pas de case cochée conservée, le fait vit au CHANGELOG. Pas de section « décidé »,
+c'est un ADR ou rien. Une affirmation non vérifiée porte « à vérifier », la session suivante
+vérifie avant d'agir dessus.
+
+**Fichier entier** : cible 150 lignes, blocage à 300.
+
 ---
 
 ## Les savoirs durables, et où ils atterrissent
 
-Ce sont les faits qu'aucune lecture du dépôt ne permet de retrouver. Ils n'ont pas de pilier à
-eux, chacun rejoint la surface qui le porte déjà. C'est ce qui rend la non-duplication
-vérifiable au lieu d'être une intention.
+Ce sont les faits qu'aucune lecture du dépôt ne permet de retrouver. Le tableau plus haut donne
+la destination de chacun, voici le détail qui n'y tient pas.
 
-### Une décision, avec son pourquoi
+**ADR**, `docs/decisions/`, gabarit `templates/docs/ADR.md`. Contexte, options envisagées,
+décision, conséquences, ce qui devrait la faire reconsidérer. Un ADR accepté **ne se réécrit
+jamais** : la décision change, un nouvel ADR le supersède et l'ancien pointe vers le nouveau.
 
-Direction `docs/decisions/`, un ADR par décision, gabarit dans `templates/docs/ADR.md`. Contexte,
-options envisagées, décision, conséquences, et ce qui devrait la faire reconsidérer. Cette
-dernière section est celle qui rend l'ADR utile deux ans plus tard.
+**Piège**, la fiche `docs/` du module, la carte de sa zone, ou `CODEMAP.md` zones sensibles s'il
+n'a ni l'un ni l'autre. Écrit comme un symptôme suivi de sa cause, pas comme une consigne.
+« L'API renvoie 200 avec l'erreur dans le corps » se retient, « attention aux erreurs » ne sert
+à rien.
 
-Un ADR accepté **ne se réécrit jamais** et ne s'archive pas. Quand la décision change, un
-nouvel ADR le supersède et l'ancien reçoit une ligne de statut en tête qui pointe vers le
-nouveau. On garde la trace du raisonnement, y compris quand il s'est révélé faux.
+**Préférence de l'utilisateur**, `CLAUDE.md`, qui se charge tout seul. Style demandé,
+conventions imposées, ce qu'il ne veut pas qu'on fasse. Reste court, seulement du permanent.
 
-### Un piège
+**Contrainte d'environnement ou d'accès**, `CODEMAP.md` section dépendances. Quel service, quel
+compte, quelle région, où vit la clé. **Jamais la valeur d'un secret.**
 
-S'il appartient à un module, il va dans la fiche `docs/` de ce module, section pièges. Sinon,
-dans `CODEMAP.md`, section zones sensibles. Un piège s'écrit comme un symptôme suivi de sa
-cause, pas comme une consigne. « L'API renvoie 200 avec l'erreur dans le corps » se retient,
-« attention aux erreurs de l'API » ne sert à rien.
+**Fait externe daté**, `docs/veille/` avec sa date, ou une entrée de `CHANGELOG.md` si c'est ce
+qui explique un changement. Périssable par nature, il se relit ou s'archive.
 
-### Une préférence de l'utilisateur
-
-Direction `CLAUDE.md`, qui est le fichier fait pour ça et qui se charge tout seul. Style
-demandé, conventions imposées, ce qu'il ne veut pas qu'on fasse. `CLAUDE.md` se paie à chaque
-session, donc il reste court et ne contient que du permanent.
-
-### Une contrainte d'environnement ou d'accès
-
-Direction `CODEMAP.md`, section dépendances externes. Quel service, quel compte, quelle région,
-où vit la clé. **Jamais la valeur d'un secret**, on dit où elle est, pas ce qu'elle vaut.
-
-### Un fait externe daté
-
-Une limite constatée chez un tiers, un ticket amont, l'état d'un écosystème à un instant. Ça va
-dans `docs/veille/` avec sa date, ou dans une entrée de `CHANGELOG.md` si c'est ce qui explique
-un changement. Ce contenu est périssable par nature, il se relit ou s'archive, il ne se garde
-pas indéfiniment.
-
-### Les règles communes
-
-Dates absolues uniquement. « La semaine dernière » devient faux dès le lendemain.
-
-Un fait porte son **pourquoi**, pas seulement son quoi. Sans le pourquoi, on ne saura pas plus
-tard s'il tient encore.
-
-Une règle durable devenue fausse est **supprimée tout de suite**, pas archivée. Elle est pire
-qu'une règle absente, et `archives/` n'est pas une poubelle à erreurs ponctuelles. Si sa
-disparition mérite une trace, elle va au CHANGELOG. Les ADR font exception, ils se supersèdent.
-
-Si tu hésites entre deux propriétaires, choisis celui qui sera relu par quelqu'un qui travaille
-sur le sujet. Un fait rangé là où personne ne le cherche ne vaut pas mieux qu'un fait absent.
+**Règles communes.** Dates absolues, « la semaine dernière » devient faux dès le lendemain. Un
+fait porte son pourquoi, pas seulement son quoi. Une règle durable devenue fausse est
+**supprimée tout de suite**, pas archivée, sa disparition va au CHANGELOG si elle mérite une
+trace, les ADR seuls se supersèdent. En cas d'hésitation, choisis le propriétaire que relira
+quelqu'un qui travaille sur le sujet.
 
 ---
 
@@ -234,7 +236,11 @@ Tu ne réécris jamais le passé. Une entrée erronée se corrige par une nouvel
 mentionne, pas par une édition silencieuse.
 
 Une entrée volumineuse reste courte ici et pointe vers `docs/`, ou vers `changes/<date>-<slug>.md`
-si le projet a ce répertoire.
+si le projet a ce répertoire. Une entrée tient en 25 lignes, le détail va dans une fiche.
+
+Au-delà de 30 entrées le journal tourne avec `$SKILL/scripts/ctx-rotation.sh` vers
+`archives/changelog/AAAA-MM.md`, et le fichier garde en tête la ligne qui le dit. Une entrée
+froide n'est pas fausse, c'est pourquoi elle va dans le seul endroit qu'on ne lit pas en reprise.
 
 Si le projet publie des versions, tu peux adopter la structure Keep a Changelog
 (`## [1.4.0] 2026-08-13`, avec des sections Ajouté, Modifié, Corrigé, Retiré). La règle
@@ -256,3 +262,7 @@ C'est `CLAUDE.md` qui absorbe le plus facilement ce qui n'a pas de propriétaire
 c'est le risque à surveiller. Une règle qui n'est pas vraie à chaque instant n'a rien à y faire.
 Relis-le à chaque clôture avec cette question en tête, et coupe. Le bloc à coller est dans
 `templates/CLAUDE-snippet.md`.
+
+`CLAUDE.md` ne porte ni état, ni récit, ni date d'événement. Cible 100 lignes, blocage à 200
+lignes ou 40 000 caractères. Une règle qui ne vaut que dans une zone descend dans
+`<zone>/CLAUDE.md`, ou dans `.claude/rules/<zone>.md` avec `paths:` chez Claude Code.

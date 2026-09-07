@@ -24,13 +24,28 @@ Plusieurs profils peuvent cohabiter. Prends le dominant, note les autres dans le
 
 ---
 
+## La taille, indépendante du profil
+
+Mesurée en nombre de fichiers, hors dépendances, builds, `archives/`. Un projet `lib` petit et
+un projet `app` petit se documentent de la même façon, ce n'est pas le profil qui change ça.
+
+| Taille | Fichiers | Ce qu'elle attend |
+|---|---|---|
+| petite | < 150 | un seul niveau, aucune zone |
+| moyenne | 150 à 600 | des zones là où le CODEMAP racine déborde |
+| grande | > 600 | des zones dès l'INIT, le CODEMAP racine est un index qui pointe |
+
+Se déclare dans le bloc `contexte:convention` par une ligne `taille:`. `ctx-init.sh` la calcule.
+
+---
+
 ## app, application ou service
 
 | | |
 |---|---|
 | **Module** | une couche ou un domaine : `auth`, `billing`, `api/orders`, `workers/mailer` |
 | **Feature** | un parcours utilisateur de bout en bout : inscription, checkout, export |
-| **CODEMAP insiste sur** | points d'entrée (routes, handlers, jobs), flux d'une requête, schéma de données, variables d'environnement requises |
+| **CODEMAP insiste sur** | points d'entrée (routes, handlers, jobs), flux d'une requête, schéma de données, variables d'environnement requises, une carte par zone dès que le projet est moyen |
 | **À vérifier en clôture** | le service démarre, les tests passent, les migrations sont appliquées, les routes documentées existent encore, les variables d'env citées sont toujours lues par le code |
 | **`docs/ops/`** | déploiement, rollback, migration, runbook d'incident |
 
@@ -86,6 +101,7 @@ Plusieurs profils peuvent cohabiter. Prends le dominant, note les autres dans le
 | **Règle d'or** | n'absorbe jamais la doc d'un sous-projet dans la racine, elle divergera en quelques sessions |
 | **À vérifier en clôture** | que tous les niveaux touchés sont mis à jour, pas seulement le cwd. Une session partie d'un package modifie très souvent la racine (config partagée, CI, dépendances) |
 | **`docs/` partagé** | à la racine pour le transverse (architecture d'ensemble, ADR globaux), dans le package pour le local |
+| **Package ou zone** | un package porte les trois piliers et se clôture à part, une zone à l'intérieur d'un package ne porte qu'une carte. Voir `references/ZONES.md` |
 
 ## outillage-agent, skills, plugins, commandes
 

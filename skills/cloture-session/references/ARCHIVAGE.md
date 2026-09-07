@@ -9,9 +9,10 @@
 **Aucune suppression silencieuse.** Ce qui a compté a le droit d'être retrouvé, avec la date et
 la raison de sa mise à l'écart.
 
-**`archives/` n'est jamais une source de vérité.** On ne le lit pas en reprise, on ne le cite pas
-depuis une fiche vivante, on ne s'en sert pas pour répondre à une question sur l'état actuel.
-Uniquement sur demande explicite d'archéologie.
+**`archives/` n'est jamais une source de vérité.** Ça veut dire deux choses : jamais lu en
+reprise, jamais cité depuis une fiche vivante. On ne s'en sert pas pour répondre à une question
+sur l'état actuel, uniquement sur demande explicite d'archéologie. `ctx-audit.sh` voit désormais
+les deux cas.
 
 Les deux règles se tiennent. C'est parce qu'on n'y lit jamais rien qu'on peut y jeter généreusement.
 
@@ -26,7 +27,12 @@ Le contenu est-il faux, périmé ou remplacé ?
 ├── NON → tu ne touches à rien.
 └── OUI
     ├── Est-ce un FICHIER entier devenu inutile ou faux ?
-    │   ├── OUI → ARCHIVER (git mv, en-tête, ligne d'index)
+    │   ├── OUI → ARCHIVER, voir « Le geste, en une commande ». Le critère porte sur les
+    │   │         références entrantes : pour chaque référence au fichier, est-elle opérative,
+    │   │         quelqu'un en a besoin pour agir maintenant, ou est-elle historique, un
+    │   │         commentaire qui raconte la provenance ? On archive quand toutes les
+    │   │         références restantes sont historiques. Testable par un `git grep`,
+    │   │         contrairement à « faux, périmé ou remplacé » qui reste un jugement.
     │   └── NON → c'est une SECTION d'un fichier encore utile
     │             → CORRIGER SUR PLACE, noter au CHANGELOG.
     │               On n'archive pas un fichier vivant pour une section fausse.
@@ -38,12 +44,46 @@ Le contenu est-il faux, périmé ou remplacé ?
     │         Seule exception à l'archivage, un ADR vaut par son historicité.
     ├── Est-ce une TÂCHE faite ou abandonnée (TODOS.md) ?
     │   └── → SUPPRIMER de TODOS. Le fait accompli vit au CHANGELOG.
+    ├── Est-ce une ENTRÉE de journal, vraie mais ancienne ?
+    │   └── → ROTATION, jamais réécrite ni résumée. Voir plus bas.
     └── Est-ce une RÉFÉRENCE morte (lien, chemin, ressource supprimée) ?
         └── → CORRIGER si un remplaçant existe, sinon RETIRER en le disant.
 ```
 
 Ce que tu ne fais jamais : laisser un `TODO: cette section est fausse` dans une doc vivante,
 garder « au cas où », commenter au lieu de déplacer, supprimer un fichier documentaire sans trace.
+
+---
+
+## Le geste, en une commande
+
+Deux temps, jamais un seul.
+
+```bash
+bash "$SKILL/scripts/ctx-archive.sh" --verifier <chemin>
+bash "$SKILL/scripts/ctx-archive.sh" <chemin> --raison "..." --remplace-par "..."
+```
+
+Le premier appel n'écrit rien, il classe les références entrantes et dit si un lien markdown
+vivant bloque l'archivage. Le second fait tout, dans l'ordre.
+
+1. Il reclasse les références entrantes et refuse s'il reste un lien markdown vivant vers le
+   fichier, ce lien casserait au déplacement.
+2. Il déplace par `git mv`, l'historique du fichier reste suivi.
+3. Il pose l'en-tête de provenance.
+4. Il résout les liens relatifs du fichier déplacé, depuis la racine du dépôt. Le chemin
+   d'origine est réinjecté sous le préfixe d'archive, la profondeur change, remonter avec des
+   `../` ne suffit pas, il faut redescendre depuis la racine.
+5. Il ajoute la ligne d'index dans `archives/README.md`.
+6. Il vérifie par `git grep` que plus aucune occurrence de l'ancien chemin ne subsiste hors des
+   archives, et sort en erreur sinon.
+
+Cette dernière étape est la porte qui manquait. Le geste à la main faisait quatre étapes, et la
+quatrième, la ligne d'index, sautait le plus souvent, sans que rien ne le signale.
+
+Le script refuse d'archiver un pilier (`CODEMAP.md`, `TODOS.md`, `CHANGELOG.md`, `CLAUDE.md`) et
+un index (`docs/README.md`, `archives/README.md`). Une section fausse d'un pilier se corrige sur
+place, une règle durable devenue fausse se supprime, voir l'arbre de décision.
 
 ---
 
@@ -58,6 +98,7 @@ archives/<AAAA-MM>/<chemin d'origine complet>
 | `docs/modules/auth-legacy.md` | `archives/2026-08/docs/modules/auth-legacy.md` |
 | `scripts/deploy-v1.sh` | `archives/2026-08/scripts/deploy-v1.sh` |
 | `docs/ops/migration-mongo.md` | `archives/2026-08/docs/ops/migration-mongo.md` |
+| `CHANGELOG.md`, entrées d'août | `archives/changelog/2026-08.md` (rotation, pas `git mv`) |
 
 Pourquoi ce schéma. Le bucket daté évite les collisions quand un même chemin est archivé
 plusieurs fois dans la vie du projet. Le chemin d'origine préservé rend la provenance lisible
@@ -108,6 +149,23 @@ Un fichier présent dans `archives/` mais absent de l'index est un défaut, `ctx
 
 ---
 
+## L'histoire froide, la rotation des journaux
+
+Une entrée ancienne de CHANGELOG n'est pas fausse, elle est froide. `archives/` est le seul
+endroit que la convention ne lit jamais en reprise, c'est exactement la propriété qu'on cherche
+pour du contenu vrai mais qui ne sert plus à décider.
+
+`$SKILL/scripts/ctx-rotation.sh` garde les 30 entrées les plus récentes d'un journal et déplace
+les autres dans `archives/<journal>/AAAA-MM.md`, groupées par mois de l'entrée. Un en-tête
+`ARCHIVÉ` par fichier de mois créé, jamais par entrée. Une ligne d'index dans
+`archives/README.md` par fichier créé. Lance-le en `--dry-run` d'abord, il est idempotent.
+
+Vaut pour tout journal à titres `## AAAA-MM-JJ`, pas seulement `CHANGELOG.md`. Pas de `git mv`
+ici, c'est un découpage de contenu à l'intérieur d'un fichier, la seule exception à la règle du
+`git mv` de cette page.
+
+---
+
 ## Ce qui n'a rien à faire dans `archives/`
 
 `archives/` documente l'histoire de la connaissance du projet, pas ses déchets.
@@ -118,7 +176,31 @@ Un fichier présent dans `archives/` mais absent de l'index est un défaut, `ctx
 - ❌ des brouillons jamais publiés, ils n'ont jamais fait autorité, il n'y a rien à tracer,
 - ❌ des règles durables devenues fausses, voir l'arbre de décision.
 
-Règle simple : tu archives ce qui a été considéré comme vrai et ne l'est plus.
+Règle simple : tu archives ce qui a été considéré comme vrai et ne l'est plus. La rotation des
+journaux est le second cas, et le seul, où `archives/` reçoit du vrai. L'en-tête dit lequel des deux
+un fichier est, parce qu'un lecteur en archéologie n'a pas à le deviner.
+
+---
+
+## Y retourner, sans tout charger
+
+`archives/` ne se lit jamais par défaut. S'il n'existe aucun chemin explicite vers ce
+répertoire, l'interdiction de lecture en reprise revient à perdre ce qu'on prétend garder.
+
+```bash
+bash "$SKILL/scripts/ctx-archeo.sh" <motif>              # cherche, rend provenance puis extraits
+bash "$SKILL/scripts/ctx-archeo.sh" --liste               # inventaire de ce qui est archivé
+bash "$SKILL/scripts/ctx-archeo.sh" --fichier <chemin>    # la provenance d'une archive précise
+```
+
+Il rend toujours la provenance AVANT l'extrait, jamais l'inverse, pour qu'on ne prenne pas une
+archive pour une vérité courante. Il distingue le froid du faux : une entrée de rotation était
+vraie à sa date, un fichier archivé par `ctx-archive.sh` a cessé d'être vrai. La sortie est
+bornée par `--max`, 20 occurrences par défaut.
+
+Pourquoi pas un `grep` nu sur `archives/`. Il rend une ligne sans son en-tête, on prend alors du
+froid pour du courant sans le savoir. Et sur une archive de journal de plusieurs milliers de
+lignes, il déverse plus qu'il ne rend.
 
 ---
 
@@ -127,7 +209,8 @@ Règle simple : tu archives ce qui a été considéré comme vrai et ne l'est pl
 Les archives se relisent une fois par an environ, ou quand le répertoire devient volumineux.
 
 Une archive dont plus rien ne dépend, et dont le sujet a totalement disparu, peut être supprimée
-pour de bon. Git en garde l'histoire.
+pour de bon. Git en garde l'histoire, et le message de commit de la suppression joue le rôle du
+certificat de destruction attendu en gestion documentaire, il dit quoi, quand et pourquoi.
 
 La ligne d'index correspondante reste, avec la mention `supprimé le AAAA-MM-JJ`. L'index est la
 seule chose qui ne se purge jamais.
