@@ -5,10 +5,15 @@
   },
   "plugins": [
     {
-      "name": "cloture-session",
-      "source": "./",
-      "description": "Convention de contexte pour n'importe quel projet, de dix fichiers à plusieurs milliers. Clôture de session avant un /clear, reprise sans perte, archivage de tout ce qui devient faux, et budget tenu : bloc de reprise borné, journaux qui tournent, carte par zone.",
-      "version": "4.0.0"
+      "name": "clawd-stack",
+      "source": {
+        "source": "github",
+        "repo": "fullya99/clawd-stack"
+      },
+      "description": "Une seule stack de contexte pour tous les projets. Convention à trois piliers, clôture et relance de session, plans sourcés, audit des fichiers d'instructions contre le code, migration des anciennes conventions."
     }
-  ]
+  ],
+  "renames": {
+    "cloture-session": "clawd-stack"
+  }
 }
